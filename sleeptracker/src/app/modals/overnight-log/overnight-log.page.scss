@@ -1,0 +1,40 @@
+.dial-wrap {
+  padding: 6px 0 0;
+}
+
+app-sleep-dial {
+  display: block;
+  width: min(300px, 82vw);
+  margin: 0 auto;
+}
+
+.dial-caption {
+  margin: 4px 0 0;
+  text-align: center;
+  color: var(--drift-ink-muted);
+  font-size: 15px;
+}
+
+// Says where filled-in times came from, until the person changes them.
+.dial-note {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 24px 0;
+  color: var(--ion-text-color);
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+
+  ion-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--drift-ink-muted);
+    font-size: 17px;
+  }
+}
+
+.delete-button {
+  margin: 8px 16px 32px;
+}

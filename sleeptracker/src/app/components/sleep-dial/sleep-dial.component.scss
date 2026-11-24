@@ -1,0 +1,129 @@
+:host {
+  display: block;
+}
+
+.dial {
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.dial__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.dial__face {
+  fill: var(--drift-surface-raised);
+  fill-opacity: 0.45;
+}
+
+.dial__track {
+  fill: none;
+  stroke: rgba(163, 169, 176, 0.12);
+  stroke-width: 30;
+}
+
+.dial__tick {
+  stroke: rgba(163, 169, 176, 0.35);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.dial__tick--major {
+  stroke: rgba(163, 169, 176, 0.7);
+  stroke-width: 2;
+}
+
+.dial__label {
+  fill: var(--drift-ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.dial__arc {
+  fill: none;
+  stroke: var(--drift-night);
+  stroke-width: 30;
+  stroke-linecap: round;
+}
+
+.dial__hit {
+  fill: transparent;
+}
+
+.dial__knob {
+  stroke: var(--ion-background-color);
+  stroke-width: 2;
+}
+
+.dial__handle--bed .dial__knob {
+  fill: var(--drift-night);
+}
+
+.dial__handle--wake .dial__knob {
+  fill: var(--drift-dawn);
+}
+
+.dial__glyph {
+  fill: #0e0f11;
+  pointer-events: none;
+}
+
+// Only the handles take over touches; a swipe anywhere else on the dial scrolls the sheet.
+.dial:not(.dial--static) .dial__handle {
+  cursor: grab;
+  outline: none;
+  touch-action: none;
+
+  &:focus-visible .dial__knob {
+    stroke: var(--ion-text-color);
+    stroke-width: 3;
+  }
+}
+
+.dial--dragging .dial__handle {
+  cursor: grabbing;
+}
+
+.dial__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.dial__duration {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.dial__goal {
+  margin-top: 2px;
+  color: var(--drift-ink-muted);
+  font-size: 13px;
+}
+
+.dial__goal--met {
+  color: var(--ion-color-success);
+}
+
+.dial--invalid .dial__arc {
+  stroke: var(--ion-color-danger);
+}
+
+.dial__goal--error {
+  color: var(--ion-color-danger);
+}
+
+.dial--compact .dial__duration {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}

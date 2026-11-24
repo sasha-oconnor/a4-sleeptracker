@@ -1,0 +1,62 @@
+<div class="dial" [class.dial--static]="!interactive()" [class.dial--compact]="compact()" [class.dial--dragging]="dragging()"
+  [class.dial--invalid]="invalid()">
+  <svg #svg class="dial__svg" [attr.viewBox]="'0 0 ' + size + ' ' + size" role="group"
+    [attr.aria-label]="ariaSummary()"
+    (pointermove)="moveDrag($event)" (pointerup)="endDrag($event)" (pointercancel)="endDrag($event)">
+    <circle class="dial__face" [attr.cx]="center" [attr.cy]="center" [attr.r]="radius + 21" />
+    <circle class="dial__track" [attr.cx]="center" [attr.cy]="center" [attr.r]="radius" />
+
+    @for (t of ticks; track $index) {
+      <line class="dial__tick" [class.dial__tick--major]="t.major"
+        [attr.x1]="t.x1" [attr.y1]="t.y1" [attr.x2]="t.x2" [attr.y2]="t.y2" />
+    }
+    @if (!compact()) {
+      @for (l of labels; track l.text) {
+        <text class="dial__label" [attr.x]="l.x" [attr.y]="l.y" text-anchor="middle" dominant-baseline="central">{{ l.text }}</text>
+      }
+    }
+
+    @if (arcPath()) {
+      <path class="dial__arc" [attr.d]="arcPath()" />
+    }
+
+    <g class="dial__handle dial__handle--bed" [attr.transform]="'translate(' + bedPoint().x + ' ' + bedPoint().y + ')'"
+      [attr.role]="interactive() ? 'slider' : null" [attr.tabindex]="interactive() ? 0 : null"
+      [attr.aria-label]="interactive() ? 'Bedtime' : null"
+      [attr.aria-valuemin]="interactive() ? 0 : null" [attr.aria-valuemax]="interactive() ? 1439 : null"
+      [attr.aria-valuenow]="interactive() ? bed() : null" [attr.aria-valuetext]="interactive() ? valueText('bed') : null"
+      (pointerdown)="startDrag($event, 'bed')" (lostpointercapture)="cancelDrag()" (keydown)="onKey($event, 'bed')"
+      (touchstart)="holdTouch($event)" (mousedown)="holdTouch($event)">
+      <circle class="dial__hit" r="26" />
+      <circle class="dial__knob" r="17" />
+      <!-- ionicons "moon" -->
+      <path class="dial__glyph" transform="translate(-9.2 -9.2) scale(0.036)"
+        d="M264 480A232 232 0 0132 248c0-94 54-178.28 137.61-214.67a16 16 0 0121.06 21.06C181.07 76.43 176 104.66 176 136c0 110.28 89.72 200 200 200 31.34 0 59.57-5.07 81.61-14.67a16 16 0 0121.06 21.06C442.28 426 358 480 264 480z" />
+    </g>
+
+    <g class="dial__handle dial__handle--wake" [attr.transform]="'translate(' + wakePoint().x + ' ' + wakePoint().y + ')'"
+      [attr.role]="interactive() ? 'slider' : null" [attr.tabindex]="interactive() ? 0 : null"
+      [attr.aria-label]="interactive() ? 'Wake-up time' : null"
+      [attr.aria-valuemin]="interactive() ? 0 : null" [attr.aria-valuemax]="interactive() ? 1439 : null"
+      [attr.aria-valuenow]="interactive() ? wake() : null" [attr.aria-valuetext]="interactive() ? valueText('wake') : null"
+      (pointerdown)="startDrag($event, 'wake')" (lostpointercapture)="cancelDrag()" (keydown)="onKey($event, 'wake')"
+      (touchstart)="holdTouch($event)" (mousedown)="holdTouch($event)">
+      <circle class="dial__hit" r="26" />
+      <circle class="dial__knob" r="17" />
+      <!-- ionicons "sunny" -->
+      <path class="dial__glyph" transform="translate(-9.2 -9.2) scale(0.036)"
+        d="M256 118a22 22 0 01-22-22V48a22 22 0 0144 0v48a22 22 0 01-22 22zM256 486a22 22 0 01-22-22v-48a22 22 0 0144 0v48a22 22 0 01-22 22zM369.14 164.86a22 22 0 01-15.56-37.55l33.94-33.94a22 22 0 0131.11 31.11l-33.94 33.94a21.93 21.93 0 01-15.55 6.44zM108.92 425.08a22 22 0 01-15.55-37.56l33.94-33.94a22 22 0 1131.11 31.11l-33.94 33.94a21.94 21.94 0 01-15.56 6.45zM464 278h-48a22 22 0 010-44h48a22 22 0 010 44zM96 278H48a22 22 0 010-44h48a22 22 0 010 44zM403.08 425.08a21.94 21.94 0 01-15.56-6.45l-33.94-33.94a22 22 0 0131.11-31.11l33.94 33.94a22 22 0 01-15.55 37.56zM142.86 164.86a21.89 21.89 0 01-15.55-6.44l-33.94-33.94a22 22 0 0131.11-31.11l33.94 33.94a22 22 0 01-15.56 37.55zM256 358a102 102 0 11102-102 102.12 102.12 0 01-102 102z" />
+    </g>
+  </svg>
+
+  <div class="dial__center" aria-hidden="true">
+    <span class="dial__duration">{{ durationText() }}</span>
+    @if (!compact()) {
+      @if (invalid()) {
+        <span class="dial__goal dial__goal--error">Check the times</span>
+      } @else {
+        <span class="dial__goal" [class.dial__goal--met]="metGoal()">{{ goalText() }}</span>
+      }
+    }
+  </div>
+</div>

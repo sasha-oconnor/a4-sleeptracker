@@ -1,0 +1,31 @@
+.filter {
+  padding: 4px 16px 4px;
+}
+
+.day {
+  margin-top: 18px;
+}
+
+.day ion-list-header {
+  padding-inline-end: 16px;
+}
+
+.day__summary {
+  flex-shrink: 0;
+  margin: 10px 0 6px 12px;
+  color: var(--drift-ink-muted);
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.day ion-item {
+  --padding-start: 14px;
+  --inner-padding-end: 14px;
+}
+
+.hint {
+  margin-top: 4px;
+  margin-bottom: 32px;
+  text-align: center;
+}

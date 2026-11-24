@@ -1,0 +1,178 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Settings</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Settings</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Sleep schedule -->
+  <ion-list [inset]="true">
+    <ion-list-header><ion-label>Sleep schedule</ion-label></ion-list-header>
+    <ion-item lines="none">
+      <ion-label>Nightly goal</ion-label>
+      <ion-note slot="end" class="tabular">{{ goalText() }}</ion-note>
+    </ion-item>
+    <ion-item>
+      <ion-range aria-label="Nightly sleep goal" [min]="300" [max]="660" [step]="15" [snaps]="false"
+        [pin]="true" [pinFormatter]="pinFormatter" [value]="settings().goalMin"
+        (ionInput)="onGoalInput($event.detail.value)" (ionChange)="onGoalChange($event.detail.value)">
+        <ion-icon slot="start" name="moon-outline" aria-hidden="true"></ion-icon>
+        <ion-icon slot="end" name="moon" aria-hidden="true"></ion-icon>
+      </ion-range>
+    </ion-item>
+    <ion-item>
+      <ion-label>Usual bedtime</ion-label>
+      <ion-datetime-button slot="end" datetime="drift-usual-bed"></ion-datetime-button>
+    </ion-item>
+    <ion-item lines="none">
+      <ion-label>Usual wake-up</ion-label>
+      <ion-datetime-button slot="end" datetime="drift-usual-wake"></ion-datetime-button>
+    </ion-item>
+  </ion-list>
+  <p class="list-footer">Drift uses these to fill in new logs and to time your reminders.</p>
+
+  <!-- Reminders -->
+  <ion-list [inset]="true">
+    <ion-list-header><ion-label>Reminders</ion-label></ion-list-header>
+    <ion-item>
+      <ion-toggle [checked]="settings().checkins.enabled" (ionChange)="toggleReminder('checkins', $event)">
+        Daytime check-ins
+      </ion-toggle>
+    </ion-item>
+    @if (settings().checkins.enabled) {
+      @for (t of settings().checkins.times; track t; let i = $index) {
+        <ion-item class="time-row">
+          <ion-icon slot="start" name="alarm-outline" color="medium" aria-hidden="true"></ion-icon>
+          <ion-label class="tabular">{{ fmtClock(t) }}</ion-label>
+          <ion-button slot="end" fill="clear" color="danger" (click)="removeTime(i)" [attr.aria-label]="'Remove the ' + fmtClock(t) + ' check-in'">
+            <ion-icon slot="icon-only" name="remove-circle" aria-hidden="true"></ion-icon>
+          </ion-button>
+        </ion-item>
+      }
+      @if (settings().checkins.times.length < 6) {
+        <ion-item [button]="true" [detail]="false" class="time-row" (click)="addingTime.set(true)">
+          <ion-icon slot="start" name="add" color="primary" aria-hidden="true"></ion-icon>
+          <ion-label color="primary">Add a check-in time</ion-label>
+        </ion-item>
+      }
+    }
+    <ion-item>
+      <ion-toggle [checked]="settings().morning.enabled" (ionChange)="toggleReminder('morning', $event)">
+        Morning sleep log
+      </ion-toggle>
+    </ion-item>
+    <ion-item>
+      <ion-toggle [checked]="settings().windDown.enabled" (ionChange)="toggleReminder('windDown', $event)">
+        Wind-down nudge
+      </ion-toggle>
+    </ion-item>
+    <ion-item [button]="true" [detail]="false" lines="none" (click)="sendTest()">
+      <ion-icon slot="start" name="notifications-outline" color="primary" aria-hidden="true"></ion-icon>
+      <ion-label color="primary">Send a test check-in</ion-label>
+    </ion-item>
+  </ion-list>
+  <p class="list-footer">
+    Short prompts during the day (experience sampling) make your sleepiness log far more accurate than trying
+    to remember later. The morning reminder comes {{ settings().morning.offsetMin }} minutes after you usually
+    wake up and skips mornings you’ve already logged. {{ permissionNote() }}
+  </p>
+
+  @if (reminders.anyEnabled()) {
+    <ion-list [inset]="true">
+      <ion-list-header><ion-label>Coming up</ion-label></ion-list-header>
+      @for (r of upcoming(); track r.id; let last = $last) {
+        <ion-item [lines]="last ? 'none' : 'inset'">
+          <ion-label>{{ kindLabel(r.kind) }}</ion-label>
+          <ion-note slot="end" class="tabular">{{ whenLabel(r.at) }}</ion-note>
+        </ion-item>
+      } @empty {
+        <ion-item lines="none">
+          <ion-label color="medium">Nothing scheduled in the next week</ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+
+  <!-- Feel -->
+  <ion-list [inset]="true">
+    <ion-list-header><ion-label>Feel</ion-label></ion-list-header>
+    <ion-item lines="none">
+      <ion-toggle [checked]="settings().haptics" (ionChange)="patch({ haptics: $event.detail.checked })">
+        Haptic feedback
+      </ion-toggle>
+    </ion-item>
+  </ion-list>
+  <p class="list-footer">A light tap when you choose something and a pulse when you save. Phones only.</p>
+
+  <!-- Data -->
+  <ion-list [inset]="true">
+    <ion-list-header><ion-label>Your data</ion-label></ion-list-header>
+    <ion-item>
+      <ion-label>Saved on this device</ion-label>
+      <ion-note slot="end" class="tabular">{{ nightCount() }} nights · {{ checkinCount() }} check-ins</ion-note>
+    </ion-item>
+    <ion-item [button]="true" [detail]="false" (click)="exportBackup()">
+      <ion-icon slot="start" name="cloud-download-outline" color="primary" aria-hidden="true"></ion-icon>
+      <ion-label>Export a backup</ion-label>
+    </ion-item>
+    @if (sampleCount()) {
+      <ion-item [button]="true" [detail]="false" (click)="removeSample()">
+        <ion-icon slot="start" name="flask-outline" color="primary" aria-hidden="true"></ion-icon>
+        <ion-label>Remove sample data</ion-label>
+      </ion-item>
+    } @else {
+      <ion-item [button]="true" [detail]="false" (click)="loadSample()">
+        <ion-icon slot="start" name="flask-outline" color="primary" aria-hidden="true"></ion-icon>
+        <ion-label>Load sample data</ion-label>
+      </ion-item>
+    }
+    <ion-item [button]="true" [detail]="false" lines="none" (click)="deleteAll()" [disabled]="!nightCount() && !checkinCount()">
+      <ion-icon slot="start" name="trash-outline" color="danger" aria-hidden="true"></ion-icon>
+      <ion-label color="danger">Delete all data</ion-label>
+    </ion-item>
+  </ion-list>
+  <p class="list-footer">
+    Your logs are stored privately on this device with Ionic Storage, so they’re still here after you close or
+    reload the app. Export a backup to keep a copy somewhere else.
+  </p>
+
+  <!-- About -->
+  <ion-list [inset]="true" class="about">
+    <ion-item [button]="true" (click)="flow.showScaleInfo()">
+      <ion-icon slot="start" name="information-circle-outline" color="primary" aria-hidden="true"></ion-icon>
+      <ion-label>About the sleepiness scale</ion-label>
+    </ion-item>
+    <ion-item lines="none">
+      <ion-label>Drift</ion-label>
+      <ion-note slot="end">Version 1.0</ion-note>
+    </ion-item>
+  </ion-list>
+
+  <!-- Picker overlays -->
+  <ion-modal [keepContentsMounted]="true">
+    <ng-template>
+      <ion-datetime id="drift-usual-bed" presentation="time" [value]="usualBedIso()"
+        (ionChange)="onUsualBed($event.detail.value)"></ion-datetime>
+    </ng-template>
+  </ion-modal>
+  <ion-modal [keepContentsMounted]="true">
+    <ng-template>
+      <ion-datetime id="drift-usual-wake" presentation="time" [value]="usualWakeIso()"
+        (ionChange)="onUsualWake($event.detail.value)"></ion-datetime>
+    </ng-template>
+  </ion-modal>
+  <ion-modal class="time-picker" [isOpen]="addingTime()" (didDismiss)="addingTime.set(false)">
+    <ng-template>
+      <ion-datetime presentation="time" value="2026-01-01T12:00:00" [showDefaultButtons]="true" doneText="Add"
+        (ionChange)="addTime($event.detail.value)">
+        <span slot="title">New check-in time</span>
+      </ion-datetime>
+    </ng-template>
+  </ion-modal>
+</ion-content>

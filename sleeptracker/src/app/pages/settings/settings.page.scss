@@ -1,0 +1,28 @@
+ion-range {
+  --bar-height: 4px;
+  --knob-size: 26px;
+  padding-top: 0;
+}
+
+ion-range ion-icon {
+  color: var(--drift-ink-muted);
+  font-size: 18px;
+}
+
+.time-row {
+  --padding-start: 32px;
+}
+
+.time-row ion-label {
+  font-size: 16px;
+}
+
+.about {
+  margin-bottom: 40px;
+}
+
+ion-modal.time-picker {
+  --width: 300px;
+  --height: auto;
+  --border-radius: 14px;
+}

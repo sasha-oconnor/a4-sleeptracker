@@ -1,0 +1,93 @@
+.hero {
+  display: grid;
+  gap: 4px;
+}
+
+.hero--split {
+  grid-template-columns: 112px 1fr;
+  align-items: center;
+  column-gap: 16px;
+  position: relative;
+}
+
+.hero__dial {
+  width: 112px;
+}
+
+.hero__body {
+  min-width: 0;
+}
+
+.hero > ion-button[fill='clear']:last-child {
+  margin-bottom: -8px;
+}
+
+.hero__actions {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+.hero__title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.hero__text {
+  margin: 0 0 12px;
+  color: var(--drift-ink-muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.hero__range {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hero__meta {
+  margin: 0 0 2px;
+  color: var(--drift-ink-muted);
+  font-size: 14px;
+}
+
+.hero__meta--met {
+  color: var(--ion-color-success);
+}
+
+.hero__edit {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  margin: 0;
+}
+
+.checkins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 16px 0;
+}
+
+.checkin {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 12px 4px 5px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--drift-surface);
+  color: var(--ion-text-color);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.reminder-row {
+  margin-top: 28px;
+  margin-bottom: 28px;
+}

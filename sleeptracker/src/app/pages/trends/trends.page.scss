@@ -1,0 +1,60 @@
+.filter {
+  padding: 4px 16px 0;
+}
+
+.lead {
+  margin: 0 0 18px;
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.lead--muted {
+  margin: 0;
+  color: var(--drift-ink-muted);
+  font-size: 15px;
+}
+
+.stats {
+  margin-top: 12px;
+}
+
+.compare {
+  display: grid;
+  gap: 12px;
+}
+
+.compare__row {
+  display: grid;
+  grid-template-columns: minmax(104px, auto) 1fr 32px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.compare__label {
+  color: var(--drift-ink-muted);
+}
+
+.compare__track {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(163, 169, 176, 0.12);
+  overflow: hidden;
+}
+
+.compare__bar {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: 5px;
+  background: var(--ion-color-secondary);
+}
+
+.compare__value {
+  text-align: right;
+  font-weight: 600;
+}
+
+section:last-of-type {
+  margin-bottom: 32px;
+}

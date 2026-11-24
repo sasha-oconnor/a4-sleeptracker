@@ -1,0 +1,81 @@
+:host {
+  display: block;
+}
+
+.chart {
+  position: relative;
+  border-radius: 10px;
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ion-color-primary);
+    outline-offset: 4px;
+  }
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--drift-separator);
+  stroke-width: 1;
+}
+
+.tick,
+.axis {
+  fill: var(--drift-ink-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.col {
+  fill: var(--ion-color-secondary);
+  transition: opacity 0.15s ease-out;
+}
+
+.col--dim {
+  opacity: 0.35;
+}
+
+.missing {
+  fill: var(--drift-ink-muted);
+  opacity: 0.55;
+}
+
+.value {
+  fill: var(--ion-text-color);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.tip {
+  position: absolute;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 4px));
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--drift-surface-raised);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  white-space: nowrap;
+  text-align: center;
+
+  strong {
+    display: block;
+    font-size: 15px;
+  }
+
+  span {
+    color: var(--drift-ink-muted);
+    font-size: 12px;
+  }
+}

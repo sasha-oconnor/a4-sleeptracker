@@ -1,0 +1,33 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Sleepiness Scale</ion-title>
+    <ion-buttons slot="end">
+      <ion-button [strong]="true" (click)="close()">Done</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <p class="intro">
+    Drift uses the Stanford Sleepiness Scale, a 7-point scale sleep researchers use to rate how sleepy
+    someone feels at a given moment. Pick the statement that matches how you feel right now, not how
+    tired you think you should be.
+  </p>
+
+  <ion-list [inset]="true">
+    @for (n of levels; track n) {
+      <ion-item [lines]="n === 7 ? 'none' : 'full'">
+        <span slot="start" class="level-badge" [class]="'level-' + n" aria-hidden="true">{{ n }}</span>
+        <div class="row">
+          <span class="row__label">{{ n }} · {{ labels[n] }}</span>
+          <span class="row__desc">{{ descriptions[n] }}</span>
+        </div>
+      </ion-item>
+    }
+  </ion-list>
+
+  <p class="cite">
+    Hoddes, E., Zarcone, V., Smythe, H., Phillips, R., &amp; Dement, W. C. (1973).
+    Quantification of sleepiness: A new approach. <i>Psychophysiology, 10</i>(4), 431–436.
+  </p>
+</ion-content>

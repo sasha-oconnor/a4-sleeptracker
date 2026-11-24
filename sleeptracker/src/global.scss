@@ -32,6 +32,11 @@
  * https://ionicframework.com/docs/theming/dark-mode
  */
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/*
+ * Drift is always dark: it's used in bed with the lights off and first thing in the
+ * morning, so it never flashes a bright screen. Our own night palette (src/theme/variables.scss)
+ * is layered on top of Ionic's dark palette.
+ */
+@import "@ionic/angular/css/palettes/dark.always.css";
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* @import '@ionic/angular/css/palettes/dark.system.css'; */

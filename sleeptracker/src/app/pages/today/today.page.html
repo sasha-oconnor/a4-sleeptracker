@@ -1,0 +1,165 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Today</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Today</ion-title>
+    </ion-toolbar>
+  </ion-header>
+  <p class="page-subtitle">{{ greeting() }} · {{ dateLine() }}</p>
+
+  @switch (hero()) {
+    @case ('welcome') {
+      <section class="panel hero" aria-labelledby="hero-title">
+        <h2 id="hero-title" class="hero__title">Welcome to Drift</h2>
+        <p class="hero__text">
+          Log your sleep each morning and check in on how alert you feel during the day. After a few days,
+          Drift shows how your nights shape your days.
+        </p>
+        <ion-button expand="block" (click)="flow.openOvernight()">
+          <ion-icon slot="start" name="moon" aria-hidden="true"></ion-icon>Log last night’s sleep
+        </ion-button>
+        <ion-button expand="block" fill="clear" (click)="loadSample()">Explore with sample data</ion-button>
+      </section>
+    }
+
+    @case ('sleeping') {
+      @if (sessionDial(); as sd) {
+        <section class="panel hero hero--split" aria-labelledby="hero-title">
+          <app-sleep-dial class="hero__dial" [bed]="sd.bed" [wake]="sd.wake" [interactive]="false" [compact]="true" />
+          <div class="hero__body">
+            <h2 id="hero-title" class="hero__title">Sleep timer on</h2>
+            <p class="hero__text">Asleep since {{ sd.since }}. Tap “I’m awake” when you get up and Drift fills in the times.</p>
+          </div>
+          <div class="hero__actions">
+            <ion-button expand="block" (click)="flow.finishTimer()">
+              <ion-icon slot="start" name="sunny" aria-hidden="true"></ion-icon>I’m awake
+            </ion-button>
+            <ion-button expand="block" fill="clear" color="medium" (click)="flow.cancelTimer()">Cancel timer</ion-button>
+          </div>
+        </section>
+      }
+    }
+
+    @case ('bedtime') {
+      <section class="panel hero" aria-labelledby="hero-title">
+        <h2 id="hero-title" class="hero__title">Heading to bed?</h2>
+        <p class="hero__text">
+          Start the sleep timer when the lights go off. In the morning, tap “I’m awake” and Drift fills in the times.
+        </p>
+        <ion-button expand="block" (click)="flow.startTimer()">
+          <ion-icon slot="start" name="moon" aria-hidden="true"></ion-icon>Start sleep timer
+        </ion-button>
+        @if (!lastNight()) {
+          <ion-button expand="block" fill="clear" (click)="flow.openOvernight()">Log last night instead</ion-button>
+        }
+      </section>
+    }
+
+    @case ('log') {
+      <section class="panel hero" aria-labelledby="hero-title">
+        <h2 id="hero-title" class="hero__title">How did you sleep?</h2>
+        <p class="hero__text">
+          Your usual {{ fmtClock(settings().usualBedMin) }} to {{ fmtClock(settings().usualWakeMin) }} is already
+          filled in, so it only takes a few seconds.
+        </p>
+        <ion-button expand="block" (click)="flow.openOvernight()">
+          <ion-icon slot="start" name="moon" aria-hidden="true"></ion-icon>Log last night
+        </ion-button>
+      </section>
+    }
+
+    @case ('summary') {
+      @if (lastNightView(); as ln) {
+        <section class="panel hero hero--split" aria-labelledby="hero-title">
+          <app-sleep-dial class="hero__dial" [bed]="ln.bed" [wake]="ln.wake" [goalMin]="settings().goalMin"
+            [interactive]="false" [compact]="true" />
+          <div class="hero__body">
+            <h2 id="hero-title" class="hero__title">Last night</h2>
+            <p class="hero__range tabular">{{ ln.range }}</p>
+            <p class="hero__meta" [class.hero__meta--met]="ln.met">{{ ln.goalText }}</p>
+            @if (ln.quality) {
+              <p class="hero__meta">Felt {{ ln.quality.toLowerCase() }} on waking</p>
+            }
+          </div>
+          <ion-button class="hero__edit" fill="clear" size="small" (click)="flow.openOvernight({ entry: ln.entry })">
+            Edit
+          </ion-button>
+        </section>
+      }
+    }
+  }
+
+  <section class="section" aria-labelledby="checkin-title">
+    <div class="section-head">
+      <h2 id="checkin-title">How sleepy do you feel?</h2>
+      <ion-button fill="clear" size="small" (click)="flow.showScaleInfo()" aria-label="What do the numbers mean?">
+        <ion-icon slot="icon-only" name="help-circle-outline" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </div>
+    <div class="panel">
+      <app-sss-quick-row (picked)="flow.quickCheckin($event)" />
+    </div>
+    @if (todaysCheckins().length) {
+      <div class="checkins" role="list" aria-label="Today’s check-ins">
+        @for (c of todaysCheckins(); track c.id) {
+          <button type="button" class="checkin" role="listitem" (click)="flow.openSleepiness({ entry: c })"
+            [attr.aria-label]="'Edit the ' + fmtClock(c.loggedAt) + ' check-in: ' + c.value + ', ' + labels[c.value]">
+            <span class="level-badge level-badge--small" [class]="'level-' + c.value" aria-hidden="true">{{ c.value }}</span>
+            <span class="tabular">{{ fmtClock(c.loggedAt) }}</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <p class="section-note">No check-ins yet today. Tap the number that matches how you feel.</p>
+    }
+  </section>
+
+  @if (weekLine(); as line) {
+    <section class="section" aria-labelledby="week-title">
+      <div class="section-head">
+        <h2 id="week-title">This week</h2>
+        <ion-button fill="clear" size="small" (click)="openTrends()">
+          Trends<ion-icon slot="end" name="chevron-forward" aria-hidden="true"></ion-icon>
+        </ion-button>
+      </div>
+      <div class="panel">
+        <app-duration-chart [series]="week()" [goalMin]="settings().goalMin" [compact]="true" />
+        <p class="panel__foot">{{ line }}</p>
+      </div>
+    </section>
+  }
+
+  <ion-list [inset]="true" class="reminder-row">
+    @if (reminders.anyEnabled() && reminders.permission() === 'granted') {
+      <ion-item [button]="true" [detail]="true" routerLink="/tabs/settings">
+        <ion-icon slot="start" name="notifications" color="primary" aria-hidden="true"></ion-icon>
+        <ion-label>
+          <h3>Next reminder</h3>
+          <p class="tabular">{{ nextLine() ?? 'Nothing scheduled this week' }}</p>
+        </ion-label>
+      </ion-item>
+    } @else if (reminders.anyEnabled()) {
+      <ion-item [button]="true" [detail]="false" (click)="reminders.explainBlocked()">
+        <ion-icon slot="start" name="notifications-off-outline" color="warning" aria-hidden="true"></ion-icon>
+        <ion-label>
+          <h3>Reminders are paused</h3>
+          <p>Notifications are blocked here. Tap to see how to fix it.</p>
+        </ion-label>
+      </ion-item>
+    } @else {
+      <ion-item [button]="true" [detail]="false" (click)="turnOnReminders()">
+        <ion-icon slot="start" name="notifications-outline" color="primary" aria-hidden="true"></ion-icon>
+        <ion-label>
+          <h3>Remind me to check in</h3>
+          <p>A few quick prompts a day make your log far more accurate than remembering later.</p>
+        </ion-label>
+        <ion-note slot="end" color="primary">Turn on</ion-note>
+      </ion-item>
+    }
+  </ion-list>
+</ion-content>

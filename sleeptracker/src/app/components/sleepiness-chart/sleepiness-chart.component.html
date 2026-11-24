@@ -1,0 +1,41 @@
+<div class="chart" tabindex="0" role="group" [attr.aria-label]="summary()"
+  (keydown)="onKey($event)" (focus)="onFocus()" (blur)="hide()" (pointerleave)="hide()">
+  <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" aria-hidden="true">
+    @for (t of ticks; track t.v) {
+      <line class="grid" [attr.x1]="left" [attr.x2]="width - right" [attr.y1]="t.y" [attr.y2]="t.y" />
+      <text class="tick" [attr.x]="left - 8" [attr.y]="t.y" text-anchor="end" dominant-baseline="central">{{ t.v }}</text>
+    }
+
+    @for (c of cols(); track c.bucket.label) {
+      @if (c.path) {
+        <path class="col" [class.col--dim]="active() !== null && active() !== c.index" [attr.d]="c.path" />
+      } @else {
+        <circle class="missing" [attr.cx]="c.cx" [attr.cy]="plotBottom - 3" r="2" />
+      }
+      @if (c.showLabel && active() === null) {
+        <text class="value" [attr.x]="c.cx" [attr.y]="c.labelY" text-anchor="middle">{{ c.value }}</text>
+      }
+      <text class="axis" [attr.x]="c.cx" [attr.y]="height - 6" text-anchor="middle">{{ c.bucket.label }}</text>
+      <rect class="hit" [attr.x]="c.cx - slot() / 2" y="0" [attr.width]="slot()" [attr.height]="plotBottom"
+        (pointerenter)="show(c.index)" (click)="show(c.index)" />
+    }
+  </svg>
+
+  @if (tooltip(); as tip) {
+    <div class="tip" [style.left.%]="tip.left" aria-hidden="true">
+      <strong>{{ tip.value }}</strong>
+      <span>{{ tip.detail }}</span>
+    </div>
+    <span class="sr-only" aria-live="polite">{{ tip.value }}, {{ tip.detail }}</span>
+  }
+
+  <table class="sr-only">
+    <caption>Average sleepiness by time of day (1 wide awake, 7 dozing off)</caption>
+    <thead><tr><th scope="col">Time of day</th><th scope="col">Average</th><th scope="col">Check-ins</th></tr></thead>
+    <tbody>
+      @for (b of buckets(); track b.label) {
+        <tr><td>{{ b.longLabel }}</td><td>{{ b.mean === null ? 'None' : b.mean.toFixed(1) }}</td><td>{{ b.n }}</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

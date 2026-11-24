@@ -1,0 +1,114 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="cancel()">Cancel</ion-button>
+    </ion-buttons>
+    <ion-title>{{ entry() ? 'Edit Sleep' : prefill()?.fromTimer ? 'Good Morning' : 'Log Sleep' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button [strong]="true" [disabled]="!valid()" (click)="save()">Save</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <h2 class="form-section form-section--first">When did you sleep?</h2>
+  <p class="form-help">Drag the moon and sun, or tap a time below.</p>
+
+  <div class="dial-wrap">
+    <app-sleep-dial [(bed)]="bedMin" [(wake)]="wakeMin" [goalMin]="goalMin()" [wakeMax]="wakeMaxMin()"
+      [invalid]="!valid()" (committed)="onDialCommit()" />
+    <p class="dial-caption tabular">{{ windowText() }}</p>
+    @if (sourceNote(); as note) {
+      <p class="dial-note">
+        <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>{{ note }}
+      </p>
+    }
+  </div>
+
+  <ion-list [inset]="true">
+    <ion-item>
+      <ion-icon slot="start" name="calendar-outline" color="medium" aria-hidden="true"></ion-icon>
+      <ion-label>Morning of</ion-label>
+      <ion-datetime-button slot="end" [datetime]="ids.morning" aria-label="Morning you woke up"></ion-datetime-button>
+    </ion-item>
+    <ion-item>
+      <ion-icon slot="start" name="moon" color="primary" aria-hidden="true"></ion-icon>
+      <ion-label>Went to bed</ion-label>
+      <ion-datetime-button slot="end" [datetime]="ids.bed"></ion-datetime-button>
+    </ion-item>
+    <ion-item lines="none">
+      <ion-icon slot="start" name="sunny" color="secondary" aria-hidden="true"></ion-icon>
+      <ion-label>Woke up</ion-label>
+      <ion-datetime-button slot="end" [datetime]="ids.wake"></ion-datetime-button>
+    </ion-item>
+  </ion-list>
+
+  @for (message of errors(); track message) {
+    <p class="form-msg form-msg--error" role="alert">
+      <ion-icon name="warning" aria-hidden="true"></ion-icon>{{ message }}
+    </p>
+  }
+  @for (message of warnings(); track message) {
+    <p class="form-msg form-msg--warn" role="status">
+      <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>{{ message }}
+    </p>
+  }
+
+  <h2 class="form-section">Optional details</h2>
+
+  <h3 class="form-heading form-heading--first">How rested do you feel?</h3>
+  <div class="stars" role="radiogroup" aria-label="How rested you feel">
+    @for (s of stars; track s) {
+      <button type="button" class="stars__star" role="radio" [attr.aria-checked]="quality() === s"
+        [attr.aria-label]="s + ' of 5: ' + qualityLabels[s]" (click)="setQuality(s)">
+        <ion-icon [name]="(quality() ?? 0) >= s ? 'star' : 'star-outline'" aria-hidden="true"></ion-icon>
+      </button>
+    }
+    <span class="stars__label">{{ quality() ? qualityLabels[quality()!] : '' }}</span>
+  </div>
+
+  <h3 class="form-heading">Anything affect your sleep?</h3>
+  <div class="tags">
+    @for (t of tagOptions; track t.id) {
+      <button type="button" class="tag" [class.tag--on]="isTagged(t.id)" [attr.aria-pressed]="isTagged(t.id)"
+        (click)="toggleTag(t.id)">
+        <ion-icon [name]="t.icon" aria-hidden="true"></ion-icon>{{ t.label }}
+      </button>
+    }
+  </div>
+
+  <ion-list [inset]="true">
+    <ion-item lines="none">
+      <ion-textarea label="Notes" labelPlacement="stacked" placeholder="Anything worth remembering?"
+        [value]="notes()" (ionInput)="notes.set($event.detail.value ?? '')"
+        [autoGrow]="true" [counter]="true" [maxlength]="280"></ion-textarea>
+    </ion-item>
+  </ion-list>
+
+  @if (entry()) {
+    <ion-button class="delete-button" expand="block" fill="clear" color="danger" (click)="remove()">
+      Delete This Log
+    </ion-button>
+  }
+
+  <!-- Picker overlays opened by the datetime buttons above -->
+  <ion-modal [keepContentsMounted]="true">
+    <ng-template>
+      <ion-datetime [id]="ids.morning" presentation="date" [max]="todayKey()" [value]="morningKey()"
+        [formatOptions]="dateFormat" [highlightedDates]="loggedMornings()"
+        (ionChange)="onMorning($event.detail.value)"></ion-datetime>
+    </ng-template>
+  </ion-modal>
+  <ion-modal [keepContentsMounted]="true">
+    <ng-template>
+      <ion-datetime [id]="ids.bed" presentation="time" [value]="bedIso()"
+        (ionChange)="onBed($event.detail.value)"></ion-datetime>
+    </ng-template>
+  </ion-modal>
+  <ion-modal [keepContentsMounted]="true">
+    <ng-template>
+      <ion-datetime [id]="ids.wake" presentation="time" [value]="wakeIso()" [max]="wakeMax()"
+        (ionChange)="onWake($event.detail.value)"></ion-datetime>
+    </ng-template>
+  </ion-modal>
+</ion-content>

@@ -1,0 +1,61 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Journal</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="flow.chooseLog()" aria-label="Log something new">
+        <ion-icon slot="icon-only" name="add" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Journal</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="filter">
+    <ion-segment [value]="filter()" (ionChange)="setFilter($event.detail.value)">
+      <ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button>
+      <ion-segment-button value="sleep"><ion-label>Sleep</ion-label></ion-segment-button>
+      <ion-segment-button value="sleepiness"><ion-label>Sleepiness</ion-label></ion-segment-button>
+    </ion-segment>
+  </div>
+
+  @for (group of groups(); track group.key) {
+    <ion-list [inset]="true" class="day">
+      <ion-list-header>
+        <ion-label>{{ group.label }}</ion-label>
+        <span class="day__summary tabular">{{ group.summary }}</span>
+      </ion-list-header>
+      @for (entry of group.entries; track entry.id; let last = $last) {
+        <ion-item-sliding #sliding>
+          <ion-item [button]="true" [detail]="false" [lines]="last ? 'none' : 'inset'" (click)="edit(entry)"
+            [attr.aria-label]="(isNight(entry) ? 'Edit sleep: ' : 'Edit check-in: ') + entry.summaryString()">
+            <app-entry-item [entry]="entry" />
+          </ion-item>
+          <ion-item-options side="end" (ionSwipe)="remove(entry, sliding)">
+            <ion-item-option color="danger" [expandable]="true" (click)="remove(entry, sliding)">
+              <ion-icon slot="top" name="trash" aria-hidden="true"></ion-icon>Delete
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      }
+    </ion-list>
+  } @empty {
+    <div class="empty-state">
+      <ion-icon name="book-outline" aria-hidden="true"></ion-icon>
+      <h2>{{ empty().title }}</h2>
+      <p>{{ empty().text }}</p>
+      <ion-button (click)="newLog()">
+        <ion-icon slot="start" name="add" aria-hidden="true"></ion-icon>Log something
+      </ion-button>
+    </div>
+  }
+
+  @if (groups().length) {
+    <p class="section-note hint">Tap an entry to edit it, or swipe left to delete.</p>
+  }
+</ion-content>

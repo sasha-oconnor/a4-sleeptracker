@@ -1,0 +1,32 @@
+.scale-list ion-item {
+  --padding-start: 14px;
+  --inner-padding-end: 14px;
+  --min-height: 64px;
+}
+
+.scale-list .level-badge {
+  margin-inline-end: 14px;
+}
+
+.scale-item--on {
+  --background: var(--drift-surface-raised);
+}
+
+.scale-item__label {
+  display: block;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.scale-item__desc {
+  display: block;
+  margin-top: 2px;
+  color: var(--drift-ink-muted);
+  font-size: 14px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.delete-button {
+  margin: 8px 16px 32px;
+}

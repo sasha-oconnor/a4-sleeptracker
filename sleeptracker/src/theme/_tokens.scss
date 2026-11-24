@@ -1,0 +1,86 @@
+// Drift design tokens: Sass variables, maps, functions and mixins only (no CSS output),
+// so any stylesheet can @use this file without duplicating rules.
+@use 'sass:color';
+@use 'sass:math';
+
+// Night world. Drift is used in bed with the lights off and first thing in the morning,
+// so the whole app is dark: a neutral charcoal ground (no color tint) with slightly lighter surfaces.
+$ground: #0e0f11;
+$surface: #1a1c1f;
+$surface-raised: #25282c;
+$modal-ground: #141518;
+$modal-surface: #1f2125;
+$ink: #f2f4f5;
+$ink-muted: #a3a9b0;
+$separator: rgba(163, 169, 176, 0.16);
+
+// One key color for everything interactive (iOS "tint") and for sleep data: teal.
+// Amber is the second hue, used for sleepiness and the wake-up end of the dial.
+$night: #4fd1c5;
+$dawn: #ffb86b;
+
+// Ionic's named colors: base + readable contrast text.
+$palette: (
+  primary: (base: $night, contrast: $ground),
+  secondary: (base: $dawn, contrast: $ground),
+  tertiary: (base: #7cb7ff, contrast: $ground),
+  success: (base: #8fdc6f, contrast: $ground),
+  warning: (base: #f6c453, contrast: $ground),
+  danger: (base: #ff6f7f, contrast: $ground),
+  light: (base: #e9ecef, contrast: $ground),
+  medium: (base: #8b9198, contrast: $ground),
+  dark: (base: #2c2f34, contrast: $ink),
+);
+
+// Stanford Sleepiness Scale, 1 (wide awake) to 7 (dozing off): from midday sun to the app's sleep teal.
+// The number and label always appear too, so color is never the only cue.
+$sss: (
+  1: (base: #ffd166, contrast: $ground),
+  2: (base: #ffb86b, contrast: $ground),
+  3: (base: #ff9a7a, contrast: $ground),
+  4: (base: #e6a0b4, contrast: $ground),
+  5: (base: #9db8e8, contrast: $ground),
+  6: (base: #6bc6d8, contrast: $ground),
+  7: (base: #3fb8ac, contrast: $ground),
+);
+
+// System fonts: SF Pro on Apple devices, Segoe UI on Windows, Roboto on Android.
+$font-stack: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', system-ui, Roboto, 'Helvetica Neue', sans-serif;
+
+// "r, g, b" — the format Ionic's *-rgb variables need.
+@function rgb-list($c) {
+  @return math.round(color.channel($c, 'red', $space: rgb)), math.round(color.channel($c, 'green', $space: rgb)), math.round(color.channel($c, 'blue', $space: rgb));
+}
+
+// Every variant Ionic expects for a named color. Shade/tint follow Ionic's own recipe.
+@mixin ion-color($name, $base, $contrast) {
+  --ion-color-#{$name}: #{$base};
+  --ion-color-#{$name}-rgb: #{rgb-list($base)};
+  --ion-color-#{$name}-contrast: #{$contrast};
+  --ion-color-#{$name}-contrast-rgb: #{rgb-list($contrast)};
+  --ion-color-#{$name}-shade: #{color.mix(#000, $base, 12%)};
+  --ion-color-#{$name}-tint: #{color.mix(#fff, $base, 10%)};
+}
+
+// Lets a custom color be used through Ionic's color="..." attribute.
+@mixin ion-color-class($name) {
+  .ion-color-#{$name} {
+    --ion-color-base: var(--ion-color-#{$name});
+    --ion-color-base-rgb: var(--ion-color-#{$name}-rgb);
+    --ion-color-contrast: var(--ion-color-#{$name}-contrast);
+    --ion-color-contrast-rgb: var(--ion-color-#{$name}-contrast-rgb);
+    --ion-color-shade: var(--ion-color-#{$name}-shade);
+    --ion-color-tint: var(--ion-color-#{$name}-tint);
+  }
+}
+
+// Ionic 8 derives borders, placeholder text and pressed states from 19 "step" colors that blend
+// the background toward the text (and back). Generate them from our own ground and ink.
+@mixin color-steps($bg, $text) {
+  @for $i from 1 through 19 {
+    $step: $i * 50;
+    $weight: math.percentage(math.div($step, 1000));
+    --ion-background-color-step-#{$step}: #{color.mix($text, $bg, $weight)};
+    --ion-text-color-step-#{$step}: #{color.mix($bg, $text, $weight)};
+  }
+}

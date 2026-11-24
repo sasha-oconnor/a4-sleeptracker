@@ -1,0 +1,57 @@
+<div class="chart" [class.chart--compact]="compact()" [attr.tabindex]="compact() ? null : 0" role="group"
+  [attr.aria-label]="summary()" (keydown)="onKey($event)" (focus)="onFocus()" (blur)="hide()"
+  (pointerleave)="hide()">
+  <svg [attr.viewBox]="'0 0 ' + width + ' ' + height()" aria-hidden="true">
+    @for (t of ticks(); track t.label) {
+      <line class="grid" [attr.x1]="left()" [attr.x2]="width - right" [attr.y1]="t.y" [attr.y2]="t.y" />
+      <text class="tick" [attr.x]="left() - 6" [attr.y]="t.y" text-anchor="end" dominant-baseline="central">{{ t.label }}</text>
+    }
+    <line class="baseline" [attr.x1]="left()" [attr.x2]="width - right" [attr.y1]="plotBottom()" [attr.y2]="plotBottom()" />
+
+    @for (b of bars(); track b.point.key) {
+      @if (b.path) {
+        <path class="col" [class.col--dim]="active() !== null && active() !== b.index" [attr.d]="b.path" />
+      } @else {
+        <circle class="missing" [attr.cx]="b.cx" [attr.cy]="plotBottom() - 3" r="2" />
+      }
+      @if (b.showLabel && active() === null) {
+        <text class="value" [attr.x]="b.cx" [attr.y]="b.labelY" text-anchor="middle">{{ b.label }}</text>
+      }
+    }
+
+    <!-- Goal: a dashed threshold line with its label in the right gutter -->
+    <line class="goal" [attr.x1]="left()" [attr.x2]="width - right + 4" [attr.y1]="goalY()" [attr.y2]="goalY()" />
+    <text class="goal-label" [attr.x]="width - right + 8" [attr.y]="goalY() - 6">{{ goalLabel() }}</text>
+    <text class="goal-label goal-label--sub" [attr.x]="width - right + 8" [attr.y]="goalY() + 9">goal</text>
+
+    @for (a of axisLabels(); track a.x) {
+      <text class="axis" [attr.x]="a.x" [attr.y]="height() - 6" text-anchor="middle">{{ a.text }}</text>
+    }
+
+    @if (!compact()) {
+      <!-- Hit areas: a full-height column per night, wider than the bar itself -->
+      @for (b of bars(); track b.point.key) {
+        <rect class="hit" [attr.x]="b.cx - slot() / 2" y="0" [attr.width]="slot()" [attr.height]="plotBottom()"
+          (pointerenter)="show(b.index)" (click)="show(b.index)" />
+      }
+    }
+  </svg>
+
+  @if (tooltip(); as tip) {
+    <div class="tip" [style.left.%]="tip.left" aria-hidden="true">
+      <strong>{{ tip.value }}</strong>
+      <span>{{ tip.detail }}</span>
+    </div>
+    <span class="sr-only" aria-live="polite">{{ tip.spoken }}</span>
+  }
+
+  <table class="sr-only">
+    <caption>Hours slept per night</caption>
+    <thead><tr><th scope="col">Morning of</th><th scope="col">Slept</th></tr></thead>
+    <tbody>
+      @for (p of series(); track p.key) {
+        <tr><td>{{ fmtShortDate(p.date) }}</td><td>{{ p.minutes === null ? 'Not logged' : fmtDurationLong(p.minutes) }}</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

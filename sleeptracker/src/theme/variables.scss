@@ -1,2 +1,60 @@
-// For information on how to create your own theme, please see:
-// http://ionicframework.com/docs/theming/
+// Drift theme: Ionic's global variables, generated from the tokens in _tokens.scss.
+// For more on Ionic theming: https://ionicframework.com/docs/theming/
+@use 'sass:map';
+@use 'tokens' as *;
+
+:root {
+  @each $name, $c in $palette {
+    @include ion-color($name, map.get($c, base), map.get($c, contrast));
+  }
+
+  // Sleepiness levels as --sss-N, for the level badges.
+  @each $level, $c in $sss {
+    --sss-#{$level}: #{map.get($c, base)};
+    --sss-#{$level}-contrast: #{map.get($c, contrast)};
+  }
+
+  --ion-font-family: #{$font-stack};
+  --drift-night: #{$night};
+  --drift-dawn: #{$dawn};
+  --drift-surface: #{$surface};
+  --drift-surface-raised: #{$surface-raised};
+  --drift-ink-muted: #{$ink-muted};
+  --drift-separator: #{$separator};
+  --drift-radius: 14px;
+}
+
+// Ionic's dark palette puts surfaces on :root.ios / :root.md, so override at the same specificity.
+:root.ios,
+:root.md {
+  --ion-background-color: #{$ground};
+  --ion-background-color-rgb: #{rgb-list($ground)};
+  --ion-text-color: #{$ink};
+  --ion-text-color-rgb: #{rgb-list($ink)};
+  @include color-steps($ground, $ink);
+
+  --ion-item-background: #{$surface};
+  --ion-card-background: #{$surface};
+  --ion-toolbar-background: #{$ground};
+  --ion-tab-bar-background: #{$ground};
+  --ion-tab-bar-color: #{$ink-muted};
+  --ion-tab-bar-color-selected: #{$night};
+  --ion-border-color: #{$separator};
+  --ion-item-border-color: #{$separator};
+  --ion-toolbar-border-color: #{$separator};
+  --ion-tab-bar-border-color: #{$separator};
+  --ion-placeholder-color: #{$ink-muted};
+  --ion-backdrop-color: #000000;
+  --ion-overlay-background-color: #{$surface-raised};
+}
+
+// Sheets and modals sit one step above the page, like iOS's elevated dark surfaces.
+:root.ios ion-modal,
+:root.md ion-modal {
+  --ion-background-color: #{$modal-ground};
+  --ion-background-color-rgb: #{rgb-list($modal-ground)};
+  @include color-steps($modal-ground, $ink);
+  --ion-item-background: #{$modal-surface};
+  --ion-toolbar-background: #{$modal-ground};
+  --ion-toolbar-border-color: #{$separator};
+}

@@ -1,0 +1,39 @@
+.intro {
+  margin: 20px 20px 4px;
+  color: var(--drift-ink-muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+ion-item {
+  --padding-start: 14px;
+  --min-height: 60px;
+}
+
+.level-badge {
+  margin-inline-end: 14px;
+}
+
+.row {
+  padding: 10px 0;
+}
+
+.row__label {
+  display: block;
+  font-weight: 600;
+}
+
+.row__desc {
+  display: block;
+  margin-top: 2px;
+  color: var(--drift-ink-muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.cite {
+  margin: 4px 20px 32px;
+  color: var(--drift-ink-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}

@@ -1,0 +1,74 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="cancel()">Cancel</ion-button>
+    </ion-buttons>
+    <ion-title>{{ entry() ? 'Edit Check-in' : 'Check In' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button [strong]="true" [disabled]="!valid()" (click)="save()">Save</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <h2 class="form-heading form-heading--first">How sleepy do you feel?</h2>
+  <p class="form-help">Choose the statement that fits best right now.</p>
+
+  <ion-list [inset]="true" class="scale-list">
+    <ion-radio-group [value]="level()" (ionChange)="pick($event.detail.value)">
+      @for (n of levels; track n) {
+        <ion-item [class.scale-item--on]="level() === n">
+          <span slot="start" class="level-badge" [class]="'level-' + n" aria-hidden="true">{{ n }}</span>
+          <ion-radio [value]="n" justify="space-between">
+            <span class="scale-item__label">{{ labels[n] }}</span>
+            <span class="scale-item__desc">{{ descriptions[n] }}</span>
+          </ion-radio>
+        </ion-item>
+      }
+    </ion-radio-group>
+  </ion-list>
+
+  <ion-list [inset]="true">
+    <ion-item lines="none">
+      <ion-icon slot="start" name="alarm-outline" color="medium" aria-hidden="true"></ion-icon>
+      <ion-label>When</ion-label>
+      <ion-datetime-button slot="end" [datetime]="whenId"></ion-datetime-button>
+    </ion-item>
+  </ion-list>
+  @for (message of errors(); track message) {
+    <p class="form-msg form-msg--error" role="alert">
+      <ion-icon name="warning" aria-hidden="true"></ion-icon>{{ message }}
+    </p>
+  }
+
+  <h2 class="form-heading">What’s going on?</h2>
+  <div class="tags">
+    @for (t of tagOptions; track t.id) {
+      <button type="button" class="tag" [class.tag--on]="isTagged(t.id)" [attr.aria-pressed]="isTagged(t.id)"
+        (click)="toggleTag(t.id)">
+        <ion-icon [name]="t.icon" aria-hidden="true"></ion-icon>{{ t.label }}
+      </button>
+    }
+  </div>
+
+  <ion-list [inset]="true">
+    <ion-item lines="none">
+      <ion-textarea label="Notes" labelPlacement="stacked" placeholder="e.g. 2 hours into a study session"
+        [value]="notes()" (ionInput)="notes.set($event.detail.value ?? '')"
+        [autoGrow]="true" [counter]="true" [maxlength]="280"></ion-textarea>
+    </ion-item>
+  </ion-list>
+
+  @if (entry()) {
+    <ion-button class="delete-button" expand="block" fill="clear" color="danger" (click)="remove()">
+      Delete This Check-in
+    </ion-button>
+  }
+
+  <ion-modal [keepContentsMounted]="true">
+    <ng-template>
+      <ion-datetime [id]="whenId" presentation="date-time" [max]="maxIso()" [value]="whenIso()"
+        (ionChange)="onWhen($event.detail.value)"></ion-datetime>
+    </ng-template>
+  </ion-modal>
+</ion-content>
