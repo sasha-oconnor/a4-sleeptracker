@@ -75,7 +75,22 @@ export class TodayPage {
   protected readonly logKey = computed(() =>
     minuteOfDay(this.now()) < 4 * 60 ? dateKey(addDays(this.now(), -1)) : this.todayKey());
   protected readonly lastNight = computed(() => this.sleep.nightFor(this.logKey()));
-  protected readonly todaysCheckins = computed(() => this.sleep.checkinsOn(this.todayKey()));
+  /** Today's check-ins, newest first, so the one just logged is at the top. */
+  protected readonly todaysCheckins = computed(() => [...this.sleep.checkinsOn(this.todayKey())].reverse());
+  /** Today shows the latest few; "Show all" opens the rest in place. */
+  protected readonly checkinPreview = 3;
+  protected readonly showAllCheckins = signal(false);
+  protected readonly visibleCheckins = computed(() =>
+    this.showAllCheckins() ? this.todaysCheckins() : this.todaysCheckins().slice(0, this.checkinPreview));
+  /** "1 check-in, 4" or "11 check-ins, average 3.5". */
+  protected readonly checkinSummary = computed(() => {
+    const list = this.todaysCheckins();
+    if (list.length === 1) {
+      return `1 check-in, ${list[0].value}`;
+    }
+    const avg = list.reduce((sum, c) => sum + c.value, 0) / list.length;
+    return `${list.length} check-ins, average ${Number.isInteger(avg) ? avg : avg.toFixed(1)}`;
+  });
 
   /**
    * The last one-tap check-in. The 1–7 card confirms it in place, with Undo and "Add context", then

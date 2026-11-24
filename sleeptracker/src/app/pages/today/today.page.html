@@ -130,17 +130,28 @@
     </div>
     <p class="sr-only" role="status">{{ announcement() }}</p>
     @if (todaysCheckins().length) {
-      <p class="checkins__label" id="checkins-label">Logged today · tap one to edit</p>
-      <div class="checkins" role="group" aria-labelledby="checkins-label">
-        @for (c of todaysCheckins(); track c.id) {
-          <button type="button" class="checkin" (click)="flow.openSleepiness({ entry: c })"
+      <p class="checkins__label tabular" id="checkins-label">Logged today · {{ checkinSummary() }}</p>
+      <!-- A timeline, newest first: times line up in one column and each row opens that check-in. -->
+      <ion-list [inset]="true" class="checkins" aria-labelledby="checkins-label">
+        @for (c of visibleCheckins(); track c.id; let last = $last) {
+          <ion-item class="checkin-row" [button]="true" [detail]="true"
+            [lines]="last && todaysCheckins().length <= checkinPreview ? 'none' : 'inset'"
+            (click)="flow.openSleepiness({ entry: c })"
             [attr.aria-label]="'Edit the ' + fmtClock(c.loggedAt) + ' check-in: ' + c.value + ', ' + labels[c.value]">
+            <span slot="start" class="checkin-row__time tabular">{{ fmtClock(c.loggedAt) }}</span>
             <span class="level-badge level-badge--small" [class]="'level-' + c.value" aria-hidden="true">{{ c.value }}</span>
-            <span>{{ labels[c.value] }}</span>
-            <span class="checkin__time tabular">{{ fmtClock(c.loggedAt) }}</span>
-          </button>
+            <ion-label class="checkin-row__label">{{ labels[c.value] }}</ion-label>
+          </ion-item>
         }
-      </div>
+        @if (todaysCheckins().length > checkinPreview) {
+          <ion-item class="checkins__more" [button]="true" [detail]="false" lines="none"
+            [attr.aria-expanded]="showAllCheckins()" (click)="showAllCheckins.set(!showAllCheckins())">
+            <ion-label color="primary">
+              {{ showAllCheckins() ? 'Show less' : 'Show all ' + todaysCheckins().length }}
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
     } @else {
       <p class="section-note">No check-ins yet today.</p>
     }
