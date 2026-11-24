@@ -4,9 +4,19 @@ ion-range {
   padding-top: 0;
 }
 
-ion-range ion-icon {
+.range-end {
   color: var(--drift-ink-muted);
-  font-size: 18px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+// The second line under a reminder switch: when it fires.
+.toggle-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--drift-ink-muted);
+  font-size: 13px;
+  white-space: normal;
 }
 
 .time-row {

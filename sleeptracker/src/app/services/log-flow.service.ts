@@ -7,7 +7,7 @@ import { StanfordSleepinessData } from '../data/stanford-sleepiness-data';
 import { NightPrefill, OvernightLogPage } from '../modals/overnight-log/overnight-log.page';
 import { SleepinessLogPage } from '../modals/sleepiness-log/sleepiness-log.page';
 import { SssInfoComponent } from '../modals/sss-info/sss-info.component';
-import { MINUTE_MS, dateKey, fmtClock, fmtDuration, fmtWeekday } from '../utils/time';
+import { MINUTE_MS, dateKey, fmtClock, fmtDay, fmtDuration, fmtWeekday } from '../utils/time';
 import { FeedbackService } from './feedback.service';
 import { SleepService } from './sleep.service';
 
@@ -27,7 +27,7 @@ export class LogFlowService {
   private busy = false;
 
   /** Opens the overnight log: blank, prefilled from the sleep timer, or editing an existing night. */
-  async openOvernight(opts: { entry?: OvernightSleepData; prefill?: NightPrefill } = {}): Promise<void> {
+  async openOvernight(opts: { entry?: OvernightSleepData; prefill?: NightPrefill; morning?: string } = {}): Promise<void> {
     if (this.busy) {
       return;
     }
@@ -35,7 +35,7 @@ export class LogFlowService {
     try {
       const modal = await this.modals.create({
         component: OvernightLogPage,
-        componentProps: { entry: opts.entry ?? null, prefill: opts.prefill ?? null },
+        componentProps: { entry: opts.entry ?? null, prefill: opts.prefill ?? null, morning: opts.morning ?? null },
         presentingElement: await this.presentingElement(),
       });
       await modal.present();
@@ -51,7 +51,7 @@ export class LogFlowService {
   }
 
   /** Opens the full sleepiness check-in (with context and notes), new or editing. */
-  async openSleepiness(opts: { entry?: StanfordSleepinessData; value?: number } = {}): Promise<void> {
+  async openSleepiness(opts: { entry?: StanfordSleepinessData; value?: number; focus?: 'details' } = {}): Promise<void> {
     if (this.busy) {
       return;
     }
@@ -59,7 +59,7 @@ export class LogFlowService {
     try {
       const modal = await this.modals.create({
         component: SleepinessLogPage,
-        componentProps: { entry: opts.entry ?? null, value: opts.value ?? null },
+        componentProps: { entry: opts.entry ?? null, value: opts.value ?? null, focus: opts.focus ?? null },
         presentingElement: await this.presentingElement(),
       });
       await modal.present();
@@ -74,15 +74,25 @@ export class LogFlowService {
     }
   }
 
-  /** One-tap check-in from the Today screen: logs right away, with Undo and a way to add details. */
-  async quickCheckin(value: number): Promise<void> {
+  /**
+   * One-tap check-in from the Today screen: logs right away. Today's 1–7 card confirms it in place, with
+   * Undo and "Add context", so there's no toast.
+   */
+  async quickCheckin(value: number): Promise<StanfordSleepinessData> {
     const entry = new StanfordSleepinessData(value, new Date());
     await this.sleep.logSleepinessData(entry);
     this.feedback.haptic('success');
-    await this.feedback.toast(`Logged ${value}: “${StanfordSleepinessData.ScaleValues[value]}”`, {
-      icon: 'checkmark-circle',
-      undo: () => this.sleep.remove(entry),
-      action: { text: 'Add details', handler: () => this.openSleepiness({ entry }) },
+    return entry;
+  }
+
+  /** Adds three weeks of example data (from Today's welcome card or an empty Trends), with Undo. */
+  async loadSample(): Promise<void> {
+    const added = await this.sleep.loadSample();
+    this.feedback.haptic('success');
+    await this.feedback.toast(`3 weeks · ${added.length} entries`, {
+      header: 'Sample data added',
+      icon: 'flask-outline',
+      undo: () => this.sleep.removeMany(added),
     });
   }
 
@@ -121,7 +131,8 @@ export class LogFlowService {
     }
     await this.sleep.startSession();
     this.feedback.haptic('success');
-    await this.feedback.toast('Sleep timer started. Sleep well 🌙', {
+    await this.feedback.toast('Sleep well.', {
+      header: 'Sleep timer started',
       icon: 'moon',
       undo: () => this.sleep.clearSession(),
     });
@@ -140,7 +151,9 @@ export class LogFlowService {
       // Probably a mis-tap; don't make them log a 3-minute "night".
       const alert = await this.alerts.create({
         header: 'That was quick',
-        message: `The sleep timer has only been running for ${fmtDuration(minutes)}.`,
+        message: minutes < 1
+          ? 'The sleep timer has been running for less than a minute.'
+          : `The sleep timer has only been running for ${fmtDuration(Math.floor(minutes))}.`,
         buttons: [
           { text: 'Keep it running', role: 'cancel' },
           { text: 'Log it anyway', role: 'log' },
@@ -151,7 +164,10 @@ export class LogFlowService {
       const { role } = await alert.onDidDismiss();
       if (role === 'destructive') {
         await this.sleep.clearSession();
-        await this.feedback.toast('Sleep timer discarded', { undo: () => this.sleep.restoreSession(session) });
+        await this.feedback.toast('Sleep timer discarded', {
+          icon: 'timer-outline',
+          undo: () => this.sleep.restoreSession(session),
+        });
         return;
       }
       if (role !== 'log') {
@@ -179,7 +195,10 @@ export class LogFlowService {
     const { role } = await alert.onDidDismiss();
     if (role === 'destructive') {
       await this.sleep.clearSession();
-      await this.feedback.toast('Sleep timer stopped', { undo: () => this.sleep.restoreSession(session) });
+      await this.feedback.toast('Sleep timer stopped', {
+        icon: 'timer-outline',
+        undo: () => this.sleep.restoreSession(session),
+      });
     }
   }
 
@@ -187,20 +206,32 @@ export class LogFlowService {
   async remove(entry: SleepData): Promise<void> {
     await this.sleep.remove(entry);
     this.feedback.haptic('warning');
-    const what = entry instanceof OvernightSleepData
-      ? `${fmtWeekday(new Date(entry.end.getTime() - 24 * 60 * MINUTE_MS))} night’s sleep`
-      : `${fmtClock(entry.loggedAt)} check-in`;
-    await this.feedback.toast(`Deleted ${what}`, { icon: 'trash', undo: () => this.sleep.save(entry) });
+    const night = entry instanceof OvernightSleepData;
+    const detail = night
+      ? `${fmtWeekday(new Date(entry.end.getTime() - 24 * 60 * MINUTE_MS))} night · ${entry.durationString()}`
+      : this.checkinWhen(entry.loggedAt);
+    await this.feedback.toast(detail, {
+      header: night ? 'Sleep log deleted' : 'Check-in deleted',
+      icon: 'trash-outline',
+      undo: () => this.sleep.save(entry),
+    });
   }
 
-  /** A half-height sheet explaining what each number on the scale means. */
-  async showScaleInfo(): Promise<void> {
+  /**
+   * A sheet explaining what each number on the scale means. From Today (canLog), tapping a level returns
+   * it so Today can log it, so nobody has to remember the number, close the sheet, and then tap.
+   */
+  async showScaleInfo(opts: { canLog?: boolean } = {}): Promise<number | null> {
     const sheet = await this.modals.create({
       component: SssInfoComponent,
-      breakpoints: [0, 0.7, 1],
-      initialBreakpoint: 0.7,
+      componentProps: { canLog: !!opts.canLog },
+      breakpoints: [0, 0.75, 1],
+      initialBreakpoint: 0.75,
+      htmlAttributes: { 'aria-label': 'What the sleepiness numbers mean' },
     });
     await sheet.present();
+    const { data, role } = await sheet.onWillDismiss<number>();
+    return role === 'pick' && typeof data === 'number' ? data : null;
   }
 
   /** Where a tapped reminder should take the person. */
@@ -232,8 +263,9 @@ export class LogFlowService {
       await this.sleep.clearSession();
     }
     this.feedback.haptic('success');
-    const message = original ? 'Sleep log updated' : `Logged ${entry.durationString()} of sleep`;
-    await this.feedback.toast(replaced ? `${message} (replaced the earlier log)` : message, {
+    const header = original ? 'Sleep log updated' : replaced ? 'Sleep log replaced' : 'Sleep logged';
+    await this.feedback.toast(`${entry.durationString()} · ${fmtClock(entry.start)} → ${fmtClock(entry.end)}`, {
+      header,
       icon: 'moon',
       undo: async () => {
         if (original) {
@@ -254,11 +286,16 @@ export class LogFlowService {
   private async commitSleepiness(entry: StanfordSleepinessData, original: StanfordSleepinessData | undefined): Promise<void> {
     await this.sleep.logSleepinessData(entry);
     this.feedback.haptic('success');
-    const message = original ? 'Check-in updated' : `Logged ${entry.value}: “${entry.description}”`;
-    await this.feedback.toast(message, {
-      icon: 'checkmark-circle',
+    const label = StanfordSleepinessData.ShortLabels[entry.value];
+    await this.feedback.toast(`${entry.value} · ${label}`, {
+      header: original ? 'Check-in updated' : 'Check-in logged',
       undo: () => (original ? this.sleep.logSleepinessData(original) : this.sleep.remove(entry)),
     });
+  }
+
+  /** "Today at 8:25 AM", "Yesterday at 8:25 AM", or "Sun, Nov 22 at 8:25 AM". */
+  private checkinWhen(at: Date): string {
+    return `${fmtDay(dateKey(at), new Date())} at ${fmtClock(at)}`;
   }
 
   /** iOS "card" modals slide over (and slightly shrink) whatever is underneath. */

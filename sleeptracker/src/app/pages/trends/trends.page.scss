@@ -18,21 +18,35 @@
   margin-top: 12px;
 }
 
-.compare {
-  display: grid;
-  gap: 12px;
+.compare-note {
+  margin: -8px 0 16px;
+  color: var(--drift-ink-muted);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
+.compare {
+  display: grid;
+  gap: 14px;
+}
+
+// A fixed label column, so both bars start at the same x and their lengths compare fairly.
 .compare__row {
   display: grid;
-  grid-template-columns: minmax(104px, auto) 1fr 32px;
+  grid-template-columns: 8.5em 1fr 32px;
   align-items: center;
   gap: 10px;
   font-size: 14px;
 }
 
 .compare__label {
-  color: var(--drift-ink-muted);
+  color: var(--ion-text-color);
+
+  small {
+    display: block;
+    color: var(--drift-ink-muted);
+    font-size: 12px;
+  }
 }
 
 .compare__track {
@@ -57,4 +71,8 @@
 
 section:last-of-type {
   margin-bottom: 32px;
+}
+
+.panel > ion-button {
+  margin: 0;
 }

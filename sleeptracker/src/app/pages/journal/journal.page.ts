@@ -25,7 +25,7 @@ import { ClockService } from '../../services/clock.service';
 import { FeedbackService } from '../../services/feedback.service';
 import { LogFlowService } from '../../services/log-flow.service';
 import { SleepService } from '../../services/sleep.service';
-import { DateKey, dateKey, fmtDay } from '../../utils/time';
+import { DateKey, dateKey, fmtClock, fmtDay, fmtWeekday } from '../../utils/time';
 
 type Filter = 'all' | 'sleep' | 'sleepiness';
 
@@ -80,11 +80,19 @@ export class JournalPage {
   protected readonly empty = computed(() => {
     switch (this.filter()) {
       case 'sleep':
-        return { title: 'No nights logged yet', text: 'Log last night in the morning, or start the sleep timer at bedtime.' };
+        return {
+          title: 'No nights logged yet',
+          text: 'Log last night in the morning, or start the sleep timer at bedtime.',
+          button: 'Log a night',
+        };
       case 'sleepiness':
-        return { title: 'No check-ins yet', text: 'Rate how sleepy you feel a few times a day. It takes a couple of seconds.' };
+        return {
+          title: 'No check-ins yet',
+          text: 'Rate how sleepy you feel a few times a day. The 1–7 buttons on Today take one tap.',
+          button: 'Log a check-in',
+        };
       default:
-        return { title: 'Your journal is empty', text: 'Everything you log shows up here, newest first.' };
+        return { title: 'Your journal is empty', text: 'Everything you log shows up here, newest first.', button: 'Log something' };
     }
   });
 
@@ -119,7 +127,14 @@ export class JournalPage {
     }
   }
 
-  protected isNight(entry: SleepData): boolean {
-    return entry instanceof OvernightSleepData;
+  /** What a screen reader hears for a row, with the time so two check-ins on one day don't sound alike. */
+  protected rowLabel(entry: SleepData): string {
+    if (entry instanceof OvernightSleepData) {
+      return `Edit sleep, ${fmtWeekday(entry.start)} ${fmtClock(entry.start)} to ${fmtClock(entry.end)}: ${entry.durationString()}`;
+    }
+    if (entry instanceof StanfordSleepinessData) {
+      return `Edit check-in at ${fmtClock(entry.loggedAt)}: ${entry.value}, ${entry.shortLabel}`;
+    }
+    return entry.summaryString();
   }
 }

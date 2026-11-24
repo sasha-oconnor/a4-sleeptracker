@@ -1,6 +1,20 @@
 <div class="chart" tabindex="0" role="group" [attr.aria-label]="summary()"
   (keydown)="onKey($event)" (focus)="onFocus()" (blur)="hide()" (pointerleave)="hide()">
+  <!-- The readout band: a hint until a column is picked, then its value. It never covers the text above. -->
+  <div class="readout">
+    @if (tooltip(); as tip) {
+      <div class="tip" [style.left.%]="tip.left" aria-hidden="true">
+        <strong>{{ tip.value }}</strong>
+        <span>{{ tip.detail }}</span>
+      </div>
+      <span class="sr-only" aria-live="polite">{{ tip.value }}, {{ tip.detail }}</span>
+    } @else {
+      <span class="readout__hint" aria-hidden="true">Tap a column to see that time of day</span>
+    }
+  </div>
   <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" aria-hidden="true">
+    <!-- Taller means sleepier here (the opposite of the sleep chart), so say so on the axis. -->
+    <text class="tick" x="2" y="1" dominant-baseline="hanging">↑ sleepier</text>
     @for (t of ticks; track t.v) {
       <line class="grid" [attr.x1]="left" [attr.x2]="width - right" [attr.y1]="t.y" [attr.y2]="t.y" />
       <text class="tick" [attr.x]="left - 8" [attr.y]="t.y" text-anchor="end" dominant-baseline="central">{{ t.v }}</text>
@@ -21,13 +35,6 @@
     }
   </svg>
 
-  @if (tooltip(); as tip) {
-    <div class="tip" [style.left.%]="tip.left" aria-hidden="true">
-      <strong>{{ tip.value }}</strong>
-      <span>{{ tip.detail }}</span>
-    </div>
-    <span class="sr-only" aria-live="polite">{{ tip.value }}, {{ tip.detail }}</span>
-  }
 
   <table class="sr-only">
     <caption>Average sleepiness by time of day (1 wide awake, 7 dozing off)</caption>

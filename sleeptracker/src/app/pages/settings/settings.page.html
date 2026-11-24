@@ -19,20 +19,20 @@
       <ion-note slot="end" class="tabular">{{ goalText() }}</ion-note>
     </ion-item>
     <ion-item>
-      <ion-range aria-label="Nightly sleep goal" [min]="300" [max]="660" [step]="15" [snaps]="false"
-        [pin]="true" [pinFormatter]="pinFormatter" [value]="settings().goalMin"
+      <ion-range [attr.aria-label]="'Nightly sleep goal, ' + goalText()" [min]="300" [max]="660" [step]="15"
+        [snaps]="false" [pin]="true" [pinFormatter]="pinFormatter" [value]="settings().goalMin"
         (ionInput)="onGoalInput($event.detail.value)" (ionChange)="onGoalChange($event.detail.value)">
-        <ion-icon slot="start" name="moon-outline" aria-hidden="true"></ion-icon>
-        <ion-icon slot="end" name="moon" aria-hidden="true"></ion-icon>
+        <span slot="start" class="range-end" aria-hidden="true">5h</span>
+        <span slot="end" class="range-end" aria-hidden="true">11h</span>
       </ion-range>
     </ion-item>
     <ion-item>
       <ion-label>Usual bedtime</ion-label>
-      <ion-datetime-button slot="end" datetime="drift-usual-bed"></ion-datetime-button>
+      <ion-datetime-button slot="end" datetime="drift-usual-bed" appLabel="Usual bedtime"></ion-datetime-button>
     </ion-item>
     <ion-item lines="none">
       <ion-label>Usual wake-up</ion-label>
-      <ion-datetime-button slot="end" datetime="drift-usual-wake"></ion-datetime-button>
+      <ion-datetime-button slot="end" datetime="drift-usual-wake" appLabel="Usual wake-up"></ion-datetime-button>
     </ion-item>
   </ion-list>
   <p class="list-footer">Drift uses these to fill in new logs and to time your reminders.</p>
@@ -43,6 +43,7 @@
     <ion-item>
       <ion-toggle [checked]="settings().checkins.enabled" (ionChange)="toggleReminder('checkins', $event)">
         Daytime check-ins
+        <span class="toggle-sub">Asks how sleepy you are</span>
       </ion-toggle>
     </ion-item>
     @if (settings().checkins.enabled) {
@@ -65,43 +66,34 @@
     <ion-item>
       <ion-toggle [checked]="settings().morning.enabled" (ionChange)="toggleReminder('morning', $event)">
         Morning sleep log
+        <span class="toggle-sub tabular">{{ morningWhen() }}</span>
       </ion-toggle>
     </ion-item>
     <ion-item>
       <ion-toggle [checked]="settings().windDown.enabled" (ionChange)="toggleReminder('windDown', $event)">
-        Wind-down nudge
+        Wind-down reminder
+        <span class="toggle-sub tabular">{{ windDownWhen() }}</span>
       </ion-toggle>
     </ion-item>
+    @if (reminders.anyEnabled() && reminders.permission() === 'granted') {
+      <ion-item class="next-reminder">
+        <ion-icon slot="start" name="notifications" color="primary" aria-hidden="true"></ion-icon>
+        <ion-label>
+          <h3>Next reminder</h3>
+          <p class="tabular">{{ nextLine() }}</p>
+        </ion-label>
+      </ion-item>
+    }
     <ion-item [button]="true" [detail]="false" lines="none" (click)="sendTest()">
       <ion-icon slot="start" name="notifications-outline" color="primary" aria-hidden="true"></ion-icon>
       <ion-label color="primary">Send a test check-in</ion-label>
     </ion-item>
   </ion-list>
-  <p class="list-footer">
-    Short prompts during the day (experience sampling) make your sleepiness log far more accurate than trying
-    to remember later. The morning reminder comes {{ settings().morning.offsetMin }} minutes after you usually
-    wake up and skips mornings you’ve already logged. {{ permissionNote() }}
-  </p>
+  <p class="list-footer">Prompts in the moment make your log more accurate than remembering later. {{ permissionNote() }}</p>
 
-  @if (reminders.anyEnabled()) {
-    <ion-list [inset]="true">
-      <ion-list-header><ion-label>Coming up</ion-label></ion-list-header>
-      @for (r of upcoming(); track r.id; let last = $last) {
-        <ion-item [lines]="last ? 'none' : 'inset'">
-          <ion-label>{{ kindLabel(r.kind) }}</ion-label>
-          <ion-note slot="end" class="tabular">{{ whenLabel(r.at) }}</ion-note>
-        </ion-item>
-      } @empty {
-        <ion-item lines="none">
-          <ion-label color="medium">Nothing scheduled in the next week</ion-label>
-        </ion-item>
-      }
-    </ion-list>
-  }
-
-  <!-- Feel -->
+  <!-- Haptics -->
   <ion-list [inset]="true">
-    <ion-list-header><ion-label>Feel</ion-label></ion-list-header>
+    <ion-list-header><ion-label>Haptics</ion-label></ion-list-header>
     <ion-item lines="none">
       <ion-toggle [checked]="settings().haptics" (ionChange)="patch({ haptics: $event.detail.checked })">
         Haptic feedback
@@ -114,7 +106,7 @@
   <ion-list [inset]="true">
     <ion-list-header><ion-label>Your data</ion-label></ion-list-header>
     <ion-item>
-      <ion-label>Saved on this device</ion-label>
+      <ion-label>On this device</ion-label>
       <ion-note slot="end" class="tabular">{{ nightCount() }} nights · {{ checkinCount() }} check-ins</ion-note>
     </ion-item>
     <ion-item [button]="true" [detail]="false" (click)="exportBackup()">
@@ -138,8 +130,8 @@
     </ion-item>
   </ion-list>
   <p class="list-footer">
-    Your logs are stored privately on this device with Ionic Storage, so they’re still here after you close or
-    reload the app. Export a backup to keep a copy somewhere else.
+    Your logs are saved privately on this device, so they’re still here after you close or reload the app.
+    Export a backup to keep a copy somewhere else.
   </p>
 
   <!-- About -->
@@ -169,8 +161,9 @@
   </ion-modal>
   <ion-modal class="time-picker" [isOpen]="addingTime()" (didDismiss)="addingTime.set(false)">
     <ng-template>
-      <ion-datetime presentation="time" value="2026-01-01T12:00:00" [showDefaultButtons]="true" doneText="Add"
-        (ionChange)="addTime($event.detail.value)">
+      <!-- Only waking hours are offered, starting at the next free hour. -->
+      <ion-datetime presentation="time" [value]="newTime().value" [min]="newTime().min" [max]="newTime().max"
+        [showDefaultButtons]="true" doneText="Add" (ionChange)="addTime($event.detail.value)">
         <span slot="title">New check-in time</span>
       </ion-datetime>
     </ng-template>

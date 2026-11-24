@@ -29,17 +29,17 @@
     <ion-item>
       <ion-icon slot="start" name="calendar-outline" color="medium" aria-hidden="true"></ion-icon>
       <ion-label>Morning of</ion-label>
-      <ion-datetime-button slot="end" [datetime]="ids.morning" aria-label="Morning you woke up"></ion-datetime-button>
+      <ion-datetime-button slot="end" [datetime]="ids.morning" appLabel="Morning you woke up"></ion-datetime-button>
     </ion-item>
     <ion-item>
       <ion-icon slot="start" name="moon" color="primary" aria-hidden="true"></ion-icon>
       <ion-label>Went to bed</ion-label>
-      <ion-datetime-button slot="end" [datetime]="ids.bed"></ion-datetime-button>
+      <ion-datetime-button slot="end" [datetime]="ids.bed" appLabel="Went to bed"></ion-datetime-button>
     </ion-item>
     <ion-item lines="none">
       <ion-icon slot="start" name="sunny" color="secondary" aria-hidden="true"></ion-icon>
       <ion-label>Woke up</ion-label>
-      <ion-datetime-button slot="end" [datetime]="ids.wake"></ion-datetime-button>
+      <ion-datetime-button slot="end" [datetime]="ids.wake" appLabel="Woke up"></ion-datetime-button>
     </ion-item>
   </ion-list>
 
@@ -81,7 +81,7 @@
     <ion-item lines="none">
       <ion-textarea label="Notes" labelPlacement="stacked" placeholder="Anything worth remembering?"
         [value]="notes()" (ionInput)="notes.set($event.detail.value ?? '')"
-        [autoGrow]="true" [counter]="true" [maxlength]="280"></ion-textarea>
+        [autoGrow]="true" [maxlength]="280"></ion-textarea>
     </ion-item>
   </ion-list>
 

@@ -58,26 +58,123 @@
   color: var(--ion-color-success);
 }
 
+// Last night's card is one big button; "Edit" is its visible cue.
+.hero--tappable {
+  cursor: pointer;
+  transition: background-color 0.15s ease-out;
+
+  &:active {
+    background: var(--drift-surface-raised);
+  }
+}
+
 .hero__edit {
   position: absolute;
-  top: 6px;
-  right: 4px;
-  margin: 0;
+  top: 14px;
+  right: 16px;
+  color: var(--ion-color-primary);
+  font-size: 15px;
+}
+
+.section-lead {
+  margin: -4px 20px 12px;
+  color: var(--drift-ink-muted);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+// The one-tap confirmation folds open inside the 1–7 card. The grid row animates from 0fr to 1fr, so the
+// card grows to the content's real height without a hard-coded max-height.
+.confirm {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease-out;
+}
+
+.confirm--open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.confirm__clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.confirm__body {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--drift-separator);
+}
+
+.confirm__text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 1.35;
+
+  ion-icon {
+    flex-shrink: 0;
+    color: var(--ion-color-primary);
+    font-size: 20px;
+  }
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.confirm__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pill {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(79, 209, 197, 0.16);
+  color: var(--ion-color-primary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease-out;
+
+  &:active {
+    background: rgba(79, 209, 197, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm {
+    transition: opacity 0.15s linear;
+  }
+}
+
+.checkins__label {
+  margin: 14px 20px 8px;
+  color: var(--drift-ink-muted);
+  font-size: 13px;
 }
 
 .checkins {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 12px 16px 0;
+  margin: 0 16px;
 }
 
 .checkin {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
-  padding: 4px 12px 4px 5px;
+  min-height: 44px;
+  padding: 4px 14px 4px 9px;
   border: 0;
   border-radius: 999px;
   background: var(--drift-surface);
@@ -85,6 +182,20 @@
   font: inherit;
   font-size: 14px;
   cursor: pointer;
+}
+
+.checkin__time {
+  color: var(--drift-ink-muted);
+}
+
+// "This week" opens Trends.
+.panel--link {
+  cursor: pointer;
+  transition: background-color 0.15s ease-out;
+
+  &:active {
+    background: var(--drift-surface-raised);
+  }
 }
 
 .reminder-row {

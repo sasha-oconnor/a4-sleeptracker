@@ -6,7 +6,7 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { SettingsService } from './settings.service';
 
 export interface ToastOptions {
-  /** Bold first line (used for in-app reminders). */
+  /** Bold first line; the message becomes the quieter detail line under it. */
   header?: string;
   /** Adds an "Undo" button that runs this (the app's "uh-oh" button). */
   undo?: () => unknown;
@@ -52,12 +52,12 @@ export class FeedbackService {
     const position = opts.position ?? 'bottom';
     const anchor = position === 'bottom' && document.getElementById('tab-bar') ? 'tab-bar' : undefined;
 
-    const stacked = buttons.length > 1 || !!opts.header;
+    const stacked = buttons.length > 1;
     const toast = await this.toasts.create({
       header: opts.header,
       message,
-      // In the stacked layout the icon would float on a line of its own.
-      icon: stacked ? undefined : opts.icon,
+      // Every toast leads with an icon badge. In the stacked layout it would float on a line of its own.
+      icon: stacked ? undefined : opts.icon ?? 'checkmark',
       buttons,
       // Toasts with buttons stay long enough to read and react to.
       duration: opts.duration ?? (buttons.length ? 6000 : 2500),
@@ -65,7 +65,7 @@ export class FeedbackService {
       positionAnchor: anchor,
       swipeGesture: 'vertical',
       layout: stacked ? 'stacked' : 'baseline',
-      cssClass: 'drift-toast',
+      cssClass: opts.header ? ['drift-toast', 'drift-toast--titled'] : 'drift-toast',
     });
     this.current = toast;
     await toast.present();

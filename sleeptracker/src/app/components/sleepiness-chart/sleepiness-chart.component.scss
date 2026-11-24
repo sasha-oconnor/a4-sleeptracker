@@ -57,10 +57,23 @@ svg {
   cursor: pointer;
 }
 
+.readout {
+  position: relative;
+  height: 50px;
+  margin-bottom: 4px;
+}
+
+.readout__hint {
+  display: block;
+  padding-top: 24px;
+  color: var(--drift-ink-muted);
+  font-size: 13px;
+}
+
 .tip {
   position: absolute;
   top: 0;
-  transform: translate(-50%, calc(-100% - 4px));
+  transform: translateX(-50%);
   padding: 6px 10px;
   border-radius: 8px;
   background: var(--drift-surface-raised);

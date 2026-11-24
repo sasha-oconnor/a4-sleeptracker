@@ -21,6 +21,11 @@ ion-content::part(scroll) {
   scrollbar-width: thin;
 }
 
+// Avoid a single word alone on the last line of a paragraph.
+p {
+  text-wrap: pretty;
+}
+
 button:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--ion-color-primary);
@@ -77,8 +82,13 @@ body {
   }
 
   ion-button {
+    --padding-start: 6px;
+    --padding-end: 6px;
+    flex-shrink: 0;
+    min-height: 44px;
     margin: 0;
     font-size: 15px;
+    white-space: nowrap;
   }
 }
 
@@ -115,7 +125,8 @@ body {
   padding: 56px 32px 24px;
   text-align: center;
 
-  ion-icon {
+  // Only the big illustration icon, not the icons inside its buttons.
+  > ion-icon {
     color: var(--drift-ink-muted);
     font-size: 44px;
   }
@@ -326,10 +337,11 @@ ion-segment {
   --background: rgba(163, 169, 176, 0.12);
 }
 
+// The selected segment takes the key color, so which filter is on reads at a glance.
 ion-segment-button {
   --color: #{$ink-muted};
-  --color-checked: var(--ion-text-color);
-  --indicator-color: #{$surface-raised};
+  --color-checked: var(--ion-color-primary);
+  --indicator-color: rgba(79, 209, 197, 0.2);
   font-weight: 600;
 }
 
@@ -383,27 +395,62 @@ ion-item p {
   white-space: normal;
 }
 
+// Toasts are a raised card: an icon badge, one bold line, and buttons that look like buttons, so a
+// confirmation reads as part of the app instead of loose text over the page.
 ion-toast.drift-toast {
   --background: #{$surface-raised};
   --color: var(--ion-text-color);
   --button-color: var(--ion-color-primary);
-  --border-radius: 14px;
-  --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --border-radius: 16px;
+  --border-width: 1px;
+  --border-style: solid;
+  --border-color: rgba(163, 169, 176, 0.2);
+  --box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
   --start: 12px;
   --end: 12px;
-  font-weight: 500;
 
+  // ion-icon keeps content-box sizing, so this is an 18px glyph in a 34px circle.
   &::part(icon) {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-inline-start: 14px;
+    padding: 8px;
+    border-radius: 50%;
+    background: rgba(79, 209, 197, 0.16);
     color: var(--ion-color-primary);
+    font-size: 18px;
+  }
+
+  &::part(message) {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
   }
 
   &::part(button) {
+    min-height: 40px;
+    margin-inline: 8px 6px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: rgba(79, 209, 197, 0.16);
+    font-size: 15px;
+    font-weight: 700;
+  }
+}
+
+// With a header, the header is the bold line and the message is the quieter detail under it.
+ion-toast.drift-toast--titled {
+  &::part(header) {
+    margin-bottom: 2px;
+    font-size: 15px;
     font-weight: 700;
   }
 
-  &::part(header) {
-    margin-bottom: 2px;
-    font-weight: 700;
+  &::part(message) {
+    color: var(--drift-ink-muted);
+    font-size: 14px;
+    font-weight: 400;
   }
 }
 

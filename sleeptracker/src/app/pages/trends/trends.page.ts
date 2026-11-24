@@ -98,6 +98,7 @@ export class TrendsPage {
       return null;
     }
     const longName = `${fmtDuration(i.thresholdMin)}+ nights`;
+    const goal = fmtDuration(this.goalMin());
     const delta = i.shortMean - i.longMean;
     const sentence = Math.abs(delta) < 0.3
       ? 'So far your sleepiness is about the same after longer and shorter nights.'
@@ -106,11 +107,23 @@ export class TrendsPage {
         : `Interesting: you felt ${(-delta).toFixed(1)} points sleepier after longer nights. Oversleeping can do that.`;
     return {
       sentence,
+      // Say so when the split isn't the goal, so a 7h 55m night counting as "longer" makes sense.
+      note: i.usedGoal ? null
+        : `Not enough ${goal}+ nights yet, so this compares your longer (${fmtDuration(i.thresholdMin)}+) and shorter nights.`,
       rows: [
         { label: longName, value: i.longMean, days: i.longDays },
-        { label: 'Shorter nights', value: i.shortMean, days: i.shortDays },
+        { label: i.usedGoal ? `Under ${goal}` : 'Shorter nights', value: i.shortMean, days: i.shortDays },
       ].map(r => ({ ...r, width: ((r.value - 1) / 6) * 100, text: r.value.toFixed(1) })),
     };
+  });
+
+  /** Before there's enough to compare: say what's missing and how far along they are. */
+  protected readonly insightWaiting = computed(() => {
+    const mornings = new Set(this.nights().map(n => n.morningKey));
+    const days = new Set(this.checkins().map(c => c.dayKey).filter(d => mornings.has(d))).size;
+    const sofar = days === 1 ? 'You have 1 so far.' : `You have ${days} so far.`;
+    return `This needs about 4 days that have both a logged night and a check-in, some after longer nights and some ` +
+      `after shorter ones. ${sofar}`;
   });
 
   protected readonly rows = computed(() => {
@@ -121,7 +134,7 @@ export class TrendsPage {
       { label: 'Typical bedtime', value: s.avgBed === null ? dash : fmtClock(s.avgBed) },
       { label: 'Typical wake-up', value: s.avgWake === null ? dash : fmtClock(s.avgWake) },
       { label: 'Nights at goal', value: s.nights ? `${s.goalMet} of ${s.nights}` : dash },
-      { label: 'Sleep debt', value: s.nights ? fmtDuration(s.debtMin) : dash },
+      { label: 'Total short of goal', value: s.nights ? fmtDuration(s.debtMin) : dash },
       {
         label: 'Felt rested',
         value: s.avgQuality === null ? dash : `${s.avgQuality.toFixed(1)} / 5 · ${QUALITY_LABELS[Math.round(s.avgQuality)]}`,
@@ -153,7 +166,7 @@ export class TrendsPage {
     const text = shareText(this.stats(), this.range(), this.goalMin());
     const outcome = await this.shareService.share('My sleep with Drift', text);
     if (outcome === 'copied') {
-      await this.feedback.toast('Summary copied. Paste it into a message.', { icon: 'checkmark-circle' });
+      await this.feedback.toast('Paste it into a message.', { header: 'Summary copied' });
     } else if (outcome === 'failed') {
       await this.feedback.toast('Couldn’t share from this browser.', { icon: 'warning' });
     }

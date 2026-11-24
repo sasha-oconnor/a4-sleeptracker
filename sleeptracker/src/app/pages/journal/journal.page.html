@@ -24,16 +24,22 @@
     </ion-segment>
   </div>
 
+  @if (groups().length) {
+    <p class="section-note hint">Tap an entry to edit it, or swipe left to delete.</p>
+  }
+
   @for (group of groups(); track group.key) {
     <ion-list [inset]="true" class="day">
       <ion-list-header>
-        <ion-label>{{ group.label }}</ion-label>
-        <span class="day__summary tabular">{{ group.summary }}</span>
+        <ion-label role="heading" aria-level="2">{{ group.label }}</ion-label>
+        @if (filter() !== 'sleep') {
+          <span class="day__summary tabular">{{ group.summary }}</span>
+        }
       </ion-list-header>
       @for (entry of group.entries; track entry.id; let last = $last) {
         <ion-item-sliding #sliding>
           <ion-item [button]="true" [detail]="false" [lines]="last ? 'none' : 'inset'" (click)="edit(entry)"
-            [attr.aria-label]="(isNight(entry) ? 'Edit sleep: ' : 'Edit check-in: ') + entry.summaryString()">
+            [attr.aria-label]="rowLabel(entry)">
             <app-entry-item [entry]="entry" />
           </ion-item>
           <ion-item-options side="end" (ionSwipe)="remove(entry, sliding)">
@@ -50,12 +56,8 @@
       <h2>{{ empty().title }}</h2>
       <p>{{ empty().text }}</p>
       <ion-button (click)="newLog()">
-        <ion-icon slot="start" name="add" aria-hidden="true"></ion-icon>Log something
+        <ion-icon slot="start" name="add" aria-hidden="true"></ion-icon>{{ empty().button }}
       </ion-button>
     </div>
-  }
-
-  @if (groups().length) {
-    <p class="section-note hint">Tap an entry to edit it, or swipe left to delete.</p>
   }
 </ion-content>

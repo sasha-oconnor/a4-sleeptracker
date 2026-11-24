@@ -1,6 +1,20 @@
 <div class="chart" [class.chart--compact]="compact()" [attr.tabindex]="compact() ? null : 0" role="group"
   [attr.aria-label]="summary()" (keydown)="onKey($event)" (focus)="onFocus()" (blur)="hide()"
   (pointerleave)="hide()">
+  @if (!compact()) {
+    <!-- The readout band: a hint until a bar is picked, then that bar's value. It never covers the text above. -->
+    <div class="readout">
+      @if (tooltip(); as tip) {
+        <div class="tip" [style.left.%]="tip.left" aria-hidden="true">
+          <strong>{{ tip.value }}</strong>
+          <span>{{ tip.detail }}</span>
+        </div>
+        <span class="sr-only" aria-live="polite">{{ tip.spoken }}</span>
+      } @else {
+        <span class="readout__hint" aria-hidden="true">Tap a bar to see that night</span>
+      }
+    </div>
+  }
   <svg [attr.viewBox]="'0 0 ' + width + ' ' + height()" aria-hidden="true">
     @for (t of ticks(); track t.label) {
       <line class="grid" [attr.x1]="left()" [attr.x2]="width - right" [attr.y1]="t.y" [attr.y2]="t.y" />
@@ -37,13 +51,6 @@
     }
   </svg>
 
-  @if (tooltip(); as tip) {
-    <div class="tip" [style.left.%]="tip.left" aria-hidden="true">
-      <strong>{{ tip.value }}</strong>
-      <span>{{ tip.detail }}</span>
-    </div>
-    <span class="sr-only" aria-live="polite">{{ tip.spoken }}</span>
-  }
 
   <table class="sr-only">
     <caption>Hours slept per night</caption>

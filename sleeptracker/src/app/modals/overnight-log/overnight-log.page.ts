@@ -16,6 +16,7 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
+import { DatetimeLabelDirective } from '../../components/datetime-label.directive';
 import { SleepDialComponent } from '../../components/sleep-dial/sleep-dial.component';
 import { QUALITY_LABELS, SLEEP_TAGS } from '../../data/catalog';
 import { OvernightSleepData } from '../../data/overnight-sleep-data';
@@ -56,7 +57,7 @@ export interface NightPrefill {
   styleUrls: ['./overnight-log.page.scss'],
   imports: [
     IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonList, IonItem, IonLabel, IonIcon,
-    IonDatetime, IonDatetimeButton, IonModal, IonTextarea, SleepDialComponent,
+    IonDatetime, IonDatetimeButton, IonModal, IonTextarea, SleepDialComponent, DatetimeLabelDirective,
   ],
 })
 export class OvernightLogPage implements OnInit {
@@ -72,6 +73,8 @@ export class OvernightLogPage implements OnInit {
   readonly entry = input<OvernightSleepData | null>(null);
   /** Times from the sleep timer, for a new log. */
   readonly prefill = input<NightPrefill | null>(null);
+  /** The morning to log, for a new log (e.g. yesterday's, when logging "last night" after midnight). */
+  readonly morning = input<DateKey | null>(null);
   /** Set by Ionic's ModalController. */
   modal!: HTMLIonModalElement;
 
@@ -178,13 +181,15 @@ export class OvernightLogPage implements OnInit {
       this.bedMin.set(minuteOfDay(prefill.start));
       this.wakeMin.set(minuteOfDay(prefill.end));
     } else {
-      // Smart defaults: this morning, the usual bedtime, and the usual wake-up
-      // (or "now" when logging before the usual wake-up time).
+      // Smart defaults: this morning (or the one asked for), the usual bedtime, and the usual wake-up
+      // (or "now" when logging this morning before the usual wake-up time).
       const now = new Date();
       const nowMin = floorTo(minuteOfDay(now), 5);
-      this.morningKey.set(dateKey(now));
+      const morning = this.morning() ?? dateKey(now);
+      const isToday = morning === dateKey(now);
+      this.morningKey.set(morning);
       this.bedMin.set(settings.usualBedMin);
-      this.wakeMin.set(nowMin < settings.usualWakeMin ? nowMin : settings.usualWakeMin);
+      this.wakeMin.set(isToday && nowMin < settings.usualWakeMin ? nowMin : settings.usualWakeMin);
     }
     this.initial = this.snapshot();
     this.initialTimes.set(this.timesKey());

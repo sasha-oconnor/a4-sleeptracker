@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-button (click)="cancel()">Cancel</ion-button>
     </ion-buttons>
-    <ion-title>{{ entry() ? 'Edit Check-in' : 'Check In' }}</ion-title>
+    <ion-title>{{ !entry() ? 'Check In' : focus() === 'details' ? 'Add Context' : 'Edit Check-in' }}</ion-title>
     <ion-buttons slot="end">
       <ion-button [strong]="true" [disabled]="!valid()" (click)="save()">Save</ion-button>
     </ion-buttons>
@@ -11,16 +11,18 @@
 </ion-header>
 
 <ion-content>
-  <h2 class="form-heading form-heading--first">How sleepy do you feel?</h2>
-  <p class="form-help">Choose the statement that fits best right now.</p>
+  <h2 class="form-section form-section--first" [id]="ids.heading">
+    {{ entry() ? 'How sleepy were you?' : 'How sleepy do you feel?' }}
+  </h2>
+  <p class="form-help">{{ helpText() }}</p>
 
   <ion-list [inset]="true" class="scale-list">
-    <ion-radio-group [value]="level()" (ionChange)="pick($event.detail.value)">
+    <ion-radio-group [value]="level()" (ionChange)="pick($event.detail.value)" [attr.aria-labelledby]="ids.heading">
       @for (n of levels; track n) {
         <ion-item [class.scale-item--on]="level() === n">
           <span slot="start" class="level-badge" [class]="'level-' + n" aria-hidden="true">{{ n }}</span>
           <ion-radio [value]="n" justify="space-between">
-            <span class="scale-item__label">{{ labels[n] }}</span>
+            <span class="scale-item__label"><span class="sr-only">{{ n }}: </span>{{ labels[n] }}</span>
             <span class="scale-item__desc">{{ descriptions[n] }}</span>
           </ion-radio>
         </ion-item>
@@ -32,7 +34,7 @@
     <ion-item lines="none">
       <ion-icon slot="start" name="alarm-outline" color="medium" aria-hidden="true"></ion-icon>
       <ion-label>When</ion-label>
-      <ion-datetime-button slot="end" [datetime]="whenId"></ion-datetime-button>
+      <ion-datetime-button slot="end" [datetime]="ids.when" appLabel="When you checked in"></ion-datetime-button>
     </ion-item>
   </ion-list>
   @for (message of errors(); track message) {
@@ -41,7 +43,9 @@
     </p>
   }
 
-  <h2 class="form-heading">What’s going on?</h2>
+  <h2 class="form-section" #details>Optional details</h2>
+
+  <h3 class="form-heading form-heading--first">What’s going on?</h3>
   <div class="tags">
     @for (t of tagOptions; track t.id) {
       <button type="button" class="tag" [class.tag--on]="isTagged(t.id)" [attr.aria-pressed]="isTagged(t.id)"
@@ -55,7 +59,7 @@
     <ion-item lines="none">
       <ion-textarea label="Notes" labelPlacement="stacked" placeholder="e.g. 2 hours into a study session"
         [value]="notes()" (ionInput)="notes.set($event.detail.value ?? '')"
-        [autoGrow]="true" [counter]="true" [maxlength]="280"></ion-textarea>
+        [autoGrow]="true" [maxlength]="280"></ion-textarea>
     </ion-item>
   </ion-list>
 
@@ -67,8 +71,8 @@
 
   <ion-modal [keepContentsMounted]="true">
     <ng-template>
-      <ion-datetime [id]="whenId" presentation="date-time" [max]="maxIso()" [value]="whenIso()"
-        (ionChange)="onWhen($event.detail.value)"></ion-datetime>
+      <ion-datetime [id]="ids.when" presentation="date-time" [max]="maxIso()" [value]="whenIso()"
+        [formatOptions]="whenFormat" (ionChange)="onWhen($event.detail.value)"></ion-datetime>
     </ng-template>
   </ion-modal>
 </ion-content>

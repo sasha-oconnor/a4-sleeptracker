@@ -16,12 +16,14 @@
     </ion-toolbar>
   </ion-header>
 
-  <div class="filter">
-    <ion-segment [value]="range()" (ionChange)="setRange($event.detail.value)">
-      <ion-segment-button [value]="7"><ion-label>Last 7 days</ion-label></ion-segment-button>
-      <ion-segment-button [value]="30"><ion-label>Last 30 days</ion-label></ion-segment-button>
-    </ion-segment>
-  </div>
+  @if (!isEmpty()) {
+    <div class="filter">
+      <ion-segment [value]="range()" (ionChange)="setRange($event.detail.value)">
+        <ion-segment-button [value]="7"><ion-label>Last 7 days</ion-label></ion-segment-button>
+        <ion-segment-button [value]="30"><ion-label>Last 30 days</ion-label></ion-segment-button>
+      </ion-segment>
+    </div>
+  }
 
   @if (isEmpty()) {
     <div class="empty-state">
@@ -31,73 +33,99 @@
       <ion-button (click)="flow.chooseLog()">
         <ion-icon slot="start" name="add" aria-hidden="true"></ion-icon>Log something
       </ion-button>
+      <ion-button fill="clear" (click)="flow.loadSample()">Explore with sample data</ion-button>
     </div>
   } @else {
+    <!-- The payoff of logging both kinds of data comes first once there's enough to compare. -->
+    @if (insightView(); as view) {
+      <section class="section" aria-labelledby="insight-title">
+        <div class="section-head">
+          <h2 id="insight-title">Does sleep change your day?</h2>
+        </div>
+        <div class="panel">
+          <p class="lead">{{ view.sentence }}</p>
+          @if (view.note) {
+            <p class="compare-note">{{ view.note }}</p>
+          }
+          <div class="compare" role="list">
+            @for (row of view.rows; track row.label) {
+              <div class="compare__row" role="listitem"
+                [attr.aria-label]="row.label + ': average sleepiness ' + row.text + ' over ' + row.days + ' days'">
+                <span class="compare__label">{{ row.label }}<small>{{ row.days }} days</small></span>
+                <span class="compare__track" aria-hidden="true"><span class="compare__bar" [style.width.%]="row.width"></span></span>
+                <span class="compare__value tabular">{{ row.text }}</span>
+              </div>
+            }
+          </div>
+          <p class="panel__foot">Average sleepiness the day after, from 1 (wide awake) to 7 (dozing off). Shorter bars are better.</p>
+        </div>
+      </section>
+    }
+
     <section class="section" aria-labelledby="sleep-title">
       <div class="section-head">
         <h2 id="sleep-title">Sleep</h2>
       </div>
       <div class="panel">
         <p class="lead">{{ sleepLead() }}</p>
-        <app-duration-chart [series]="series()" [goalMin]="goalMin()" />
-      </div>
-      <ion-list [inset]="true" class="stats">
-        @for (row of rows(); track row.label; let last = $last) {
-          <ion-item [lines]="last ? 'none' : 'inset'">
-            <ion-label>{{ row.label }}</ion-label>
-            <ion-note slot="end" class="tabular">{{ row.value }}</ion-note>
-          </ion-item>
+        @if (stats().nights) {
+          <app-duration-chart [series]="series()" [goalMin]="goalMin()" />
+        } @else {
+          <ion-button (click)="flow.openOvernight()">
+            <ion-icon slot="start" name="moon" aria-hidden="true"></ion-icon>Log last night
+          </ion-button>
         }
-      </ion-list>
+      </div>
+      @if (stats().nights) {
+        <ion-list [inset]="true" class="stats">
+          @for (row of rows(); track row.label; let last = $last) {
+            <ion-item [lines]="last ? 'none' : 'inset'">
+              <ion-label>{{ row.label }}</ion-label>
+              <ion-note slot="end" class="tabular">{{ row.value }}</ion-note>
+            </ion-item>
+          }
+        </ion-list>
+      }
     </section>
 
     <section class="section" aria-labelledby="sleepiness-title">
       <div class="section-head">
         <h2 id="sleepiness-title">Sleepiness</h2>
-        <ion-button fill="clear" size="small" (click)="flow.showScaleInfo()" aria-label="What do the numbers mean?">
-          <ion-icon slot="icon-only" name="help-circle-outline" aria-hidden="true"></ion-icon>
-        </ion-button>
+        <ion-button fill="clear" size="small" (click)="flow.showScaleInfo()"
+          aria-label="What do the numbers 1 to 7 mean?">What’s 1–7?</ion-button>
       </div>
       <div class="panel">
         <p class="lead">{{ sleepinessLead() }}</p>
-        <app-sleepiness-chart [buckets]="buckets()" />
-        <p class="panel__foot">Average rating by time of day · 1 wide awake, 7 dozing off</p>
-      </div>
-      <ion-list [inset]="true" class="stats">
-        @for (row of checkinRows(); track row.label; let last = $last) {
-          <ion-item [lines]="last ? 'none' : 'inset'">
-            <ion-label>{{ row.label }}</ion-label>
-            <ion-note slot="end" class="tabular">{{ row.value }}</ion-note>
-          </ion-item>
+        @if (stats().checkins) {
+          <app-sleepiness-chart [buckets]="buckets()" />
+          <p class="panel__foot">Average rating by time of day · 1 wide awake, 7 dozing off</p>
+        } @else {
+          <ion-button (click)="flow.openSleepiness()">
+            <ion-icon slot="start" name="pulse" aria-hidden="true"></ion-icon>Check in now
+          </ion-button>
         }
-      </ion-list>
+      </div>
+      @if (stats().checkins) {
+        <ion-list [inset]="true" class="stats">
+          @for (row of checkinRows(); track row.label; let last = $last) {
+            <ion-item [lines]="last ? 'none' : 'inset'">
+              <ion-label>{{ row.label }}</ion-label>
+              <ion-note slot="end" class="tabular">{{ row.value }}</ion-note>
+            </ion-item>
+          }
+        </ion-list>
+      }
     </section>
 
-    <section class="section" aria-labelledby="insight-title">
-      <div class="section-head">
-        <h2 id="insight-title">Does sleep change your day?</h2>
-      </div>
-      <div class="panel">
-        @if (insightView(); as view) {
-          <p class="lead">{{ view.sentence }}</p>
-          <div class="compare" role="list">
-            @for (row of view.rows; track row.label) {
-              <div class="compare__row" role="listitem"
-                [attr.aria-label]="row.label + ': average sleepiness ' + row.text + ' over ' + row.days + ' days'">
-                <span class="compare__label">{{ row.label }}</span>
-                <span class="compare__track" aria-hidden="true"><span class="compare__bar" [style.width.%]="row.width"></span></span>
-                <span class="compare__value tabular">{{ row.text }}</span>
-              </div>
-            }
-          </div>
-          <p class="panel__foot">Average sleepiness the day after (1 wide awake, 7 dozing off)</p>
-        } @else {
-          <p class="lead lead--muted">
-            Keep logging both your nights and your check-ins. Once you have a few days on each side of your goal,
-            Drift will show how much a good night changes how alert you feel.
-          </p>
-        }
-      </div>
-    </section>
+    @if (!insightView()) {
+      <section class="section" aria-labelledby="insight-title">
+        <div class="section-head">
+          <h2 id="insight-title">Does sleep change your day?</h2>
+        </div>
+        <div class="panel">
+          <p class="lead lead--muted">{{ insightWaiting() }}</p>
+        </div>
+      </section>
+    }
   }
 </ion-content>

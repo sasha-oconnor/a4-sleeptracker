@@ -18,6 +18,7 @@ import {
   IonToggle,
   IonToolbar,
 } from '@ionic/angular/standalone';
+import { DatetimeLabelDirective } from '../../components/datetime-label.directive';
 import { DriftSettings } from '../../data/settings.model';
 import { SleepData } from '../../data/sleep-data';
 import { ClockService } from '../../services/clock.service';
@@ -27,7 +28,7 @@ import { ReminderKind, ReminderService } from '../../services/reminder.service';
 import { SettingsService } from '../../services/settings.service';
 import { ShareService } from '../../services/share.service';
 import { SleepService } from '../../services/sleep.service';
-import { dateKey, fmtClock, fmtDuration, inSleepWindow, isoAt, minutesFromIso } from '../../utils/time';
+import { dateKey, fmtClock, fmtDuration, inSleepWindow, isoAt, minutesFromIso, wrapMinutes } from '../../utils/time';
 
 type ReminderSetting = 'checkins' | 'morning' | 'windDown';
 
@@ -37,7 +38,7 @@ type ReminderSetting = 'checkins' | 'morning' | 'windDown';
   styleUrls: ['./settings.page.scss'],
   imports: [
     IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonListHeader, IonItem, IonLabel, IonNote, IonIcon,
-    IonButton, IonToggle, IonRange, IonDatetime, IonDatetimeButton, IonModal,
+    IonButton, IonToggle, IonRange, IonDatetime, IonDatetimeButton, IonModal, DatetimeLabelDirective,
   ],
 })
 export class SettingsPage {
@@ -63,19 +64,60 @@ export class SettingsPage {
   protected readonly nightCount = computed(() => this.sleep.overnight().length);
   protected readonly checkinCount = computed(() => this.sleep.sleepiness().length);
   protected readonly sampleCount = this.sleep.sampleCount;
-  protected readonly upcoming = computed(() => this.reminders.upcoming().slice(0, 4));
+  /** Each reminder says when it fires, right under its switch. */
+  protected readonly morningWhen = computed(() => {
+    const m = this.settings().morning;
+    return `${fmtClock(wrapMinutes(this.settings().usualWakeMin + m.offsetMin))}, ${m.offsetMin} min after you wake`;
+  });
+  protected readonly windDownWhen = computed(() => {
+    const w = this.settings().windDown;
+    return `${fmtClock(wrapMinutes(this.settings().usualBedMin - w.leadMin))}, ${w.leadMin} min before bed`;
+  });
+  /** "Check-in at 2:00 PM" (or "Check-in, Wed 10:00 AM"): the one reminder that matters next. */
+  protected readonly nextLine = computed(() => {
+    const r = this.reminders.next();
+    if (!r) {
+      return 'None this week';
+    }
+    const today = dateKey(r.at) === dateKey(this.clock.now());
+    return today ? `${this.kindLabel(r.kind)} at ${fmtClock(r.at)}`
+      : `${this.kindLabel(r.kind)}, ${r.at.toLocaleDateString('en-US', { weekday: 'short' })} ${fmtClock(r.at)}`;
+  });
 
   protected readonly permissionNote = computed(() => {
     switch (this.reminders.permission()) {
       case 'granted':
-        return 'Notifications are allowed. In a browser, reminders arrive while Drift is open in a tab; in the phone app they arrive even when it’s closed.';
+        return 'In a browser, reminders arrive while Drift is open in a tab.';
       case 'denied':
         return 'Notifications are blocked. Allow them for this site in your browser’s settings to get reminders.';
       case 'unsupported':
         return 'This browser can’t show notifications. Try Chrome or Edge on a computer.';
       default:
-        return 'Drift asks for notification permission only when you turn a reminder on.';
+        return 'Drift asks for permission only when you turn a reminder on.';
     }
+  });
+
+  /**
+   * The "add a check-in time" picker offers only waking hours (usual wake-up to usual bedtime) and opens
+   * on the first free hour after the latest check-in. If bedtime is after midnight the waking window
+   * crosses days, which min/max can't express, so it falls back to any time (addTime still checks).
+   */
+  protected readonly newTime = computed(() => {
+    const s = this.settings();
+    const day = '2026-01-01';
+    const taken = new Set(s.checkins.times);
+    const wake = s.usualWakeMin;
+    const bed = s.usualBedMin;
+    const sameDay = bed > wake;
+    const last = Math.max(wake, ...s.checkins.times);
+    const candidates = Array.from({ length: 24 }, (_, h) => h * 60)
+      .filter(m => !taken.has(m) && (!sameDay || (m >= wake && m <= bed)));
+    const pick = candidates.find(m => m > last) ?? candidates[0] ?? 12 * 60;
+    return {
+      value: isoAt(day, pick),
+      min: sameDay ? isoAt(day, wake) : undefined,
+      max: sameDay ? isoAt(day, bed) : undefined,
+    };
   });
 
   protected readonly fmtClock = fmtClock;
@@ -129,6 +171,7 @@ export class SettingsPage {
     const times = checkins.times.filter((_, i) => i !== index);
     await this.settingsService.patch({ checkins: { ...checkins, times } });
     await this.feedback.toast(`Removed the ${fmtClock(removed)} check-in`, {
+      icon: 'trash-outline',
       undo: () => this.settingsService.patch({ checkins: { ...this.settings().checkins, times: [...this.settings().checkins.times, removed].sort((a, b) => a - b) } }),
     });
   }
@@ -141,11 +184,14 @@ export class SettingsPage {
     const minutes = minutesFromIso(value);
     const s = this.settings();
     if (s.checkins.times.includes(minutes)) {
-      await this.feedback.toast(`You already have a check-in at ${fmtClock(minutes)}.`);
+      await this.feedback.toast(`You already have a check-in at ${fmtClock(minutes)}.`, { icon: 'information' });
       return;
     }
     if (inSleepWindow(minutes, s.usualBedMin, s.usualWakeMin)) {
-      await this.feedback.toast(`${fmtClock(minutes)} is during your usual sleep, so Drift wouldn’t send it.`, { icon: 'moon' });
+      await this.feedback.toast(`Drift wouldn’t send a check-in at ${fmtClock(minutes)}.`, {
+        header: 'That’s during your usual sleep',
+        icon: 'moon',
+      });
       return;
     }
     const times = [...s.checkins.times, minutes].sort((a, b) => a - b);
@@ -156,20 +202,14 @@ export class SettingsPage {
   protected async sendTest(): Promise<void> {
     const result = await this.reminders.sendTest(5);
     if (result === 'granted') {
-      await this.feedback.toast('A test check-in will arrive in 5 seconds.', { icon: 'notifications' });
+      await this.feedback.toast('It arrives in 5 seconds.', { header: 'Test check-in sent', icon: 'notifications' });
     } else {
       await this.reminders.explainBlocked();
     }
   }
 
   protected kindLabel(kind: ReminderKind): string {
-    return kind === 'checkin' ? 'Check-in' : kind === 'morning' ? 'Morning sleep log' : kind === 'winddown' ? 'Wind-down' : 'Test';
-  }
-
-  protected whenLabel(at: Date): string {
-    const today = dateKey(this.clock.now());
-    const day = dateKey(at) === today ? 'Today' : at.toLocaleDateString('en-US', { weekday: 'short' });
-    return `${day}, ${fmtClock(at)}`;
+    return kind === 'checkin' ? 'Check-in' : kind === 'morning' ? 'Sleep log' : kind === 'winddown' ? 'Wind-down' : 'Test';
   }
 
   protected async patch(change: Partial<DriftSettings>): Promise<void> {
@@ -201,7 +241,8 @@ export class SettingsPage {
     }
     const added = await this.sleep.loadSample();
     this.feedback.haptic('success');
-    await this.feedback.toast(`Added ${added.length} sample entries`, {
+    await this.feedback.toast(`3 weeks · ${added.length} entries`, {
+      header: 'Sample data added',
       icon: 'flask-outline',
       undo: () => this.sleep.removeMany(added),
     });
@@ -231,6 +272,6 @@ export class SettingsPage {
     }
     const undo = await this.sleep.clearAll();
     this.feedback.haptic('warning');
-    await this.feedback.toast('All data deleted', { icon: 'trash', undo });
+    await this.feedback.toast('All data deleted', { icon: 'trash-outline', undo });
   }
 }

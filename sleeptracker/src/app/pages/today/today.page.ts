@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
   IonButton,
@@ -26,6 +26,7 @@ import { SleepService } from '../../services/sleep.service';
 import { durationSeries, nightsInRange, rangeStats } from '../../utils/stats';
 import {
   MINUTE_MS,
+  addDays,
   dateKey,
   fmtClock,
   fmtDuration,
@@ -67,8 +68,30 @@ export class TodayPage {
   protected readonly greeting = computed(() => greeting(this.now()));
 
   protected readonly session = this.sleep.session;
-  protected readonly lastNight = computed(() => this.sleep.nightFor(this.todayKey()));
+  /**
+   * The morning "last night" ends on. Before 4 AM the night in progress hasn't ended yet, so last night
+   * is the one that ended yesterday morning (a student up at 1 AM still means yesterday's night).
+   */
+  protected readonly logKey = computed(() =>
+    minuteOfDay(this.now()) < 4 * 60 ? dateKey(addDays(this.now(), -1)) : this.todayKey());
+  protected readonly lastNight = computed(() => this.sleep.nightFor(this.logKey()));
   protected readonly todaysCheckins = computed(() => this.sleep.checkinsOn(this.todayKey()));
+
+  /**
+   * The last one-tap check-in. The 1–7 card confirms it in place, with Undo and "Add context", then
+   * folds away after a few seconds; pointing at or focusing the confirmation keeps it open.
+   */
+  private readonly recentId = signal<string | null>(null);
+  protected readonly recent = computed(() => {
+    const id = this.recentId();
+    return id ? this.sleep.sleepiness().find(e => e.id === id) ?? null : null;
+  });
+  private readonly recentShown = signal(false);
+  /** Also closes if the check-in is deleted some other way (e.g. from its chip). */
+  protected readonly confirmOpen = computed(() => this.recentShown() && !!this.recent());
+  /** What a screen reader hears after a tap, since the confirmation itself is visual. */
+  protected readonly announcement = signal('');
+  private closeTimer?: ReturnType<typeof setTimeout>;
 
   /** From three hours before the usual bedtime until 4 AM. */
   protected readonly isEvening = computed(() =>
@@ -97,10 +120,11 @@ export class TodayPage {
     const minutes = Math.max(0, (this.now().getTime() - s.start) / MINUTE_MS);
     return {
       bed: minuteOfDay(start),
-      // Keep the arc visible (5 min minimum) in the first moments after starting.
+      // Keep the arc visible (5 min minimum) in the first moments after starting. The dial's center
+      // shows the real time asleep (elapsedMin), not this padded arc.
       wake: wrapMinutes(minuteOfDay(start) + Math.max(5, Math.round(minutes))),
       since: fmtClock(start),
-      elapsed: fmtDuration(minutes),
+      elapsedMin: minutes,
     };
   });
 
@@ -143,20 +167,75 @@ export class TodayPage {
     return `${what} at ${day}${fmtClock(r.at)}`;
   });
 
+  /** "10 AM, 2 PM and 7 PM" for the reminder row. */
+  protected readonly checkinTimesText = computed(() => {
+    const times = this.settings().checkins.times.map(t => fmtClock(t).replace(':00', ''));
+    return times.length > 1 ? `${times.slice(0, -1).join(', ')} and ${times[times.length - 1]}` : times.join('');
+  });
+
   protected readonly fmtClock = fmtClock;
   protected readonly labels = StanfordSleepinessData.ShortLabels;
 
-  protected openTrends(): void {
-    void this.router.navigateByUrl('/tabs/trends');
+  constructor() {
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.closeTimer));
   }
 
-  protected async loadSample(): Promise<void> {
-    const added = await this.sleep.loadSample();
-    this.feedback.haptic('success');
-    await this.feedback.toast(`Added 3 weeks of sample data (${added.length} entries)`, {
-      icon: 'flask-outline',
-      undo: () => this.sleep.removeMany(added),
-    });
+  protected async checkIn(value: number): Promise<void> {
+    const entry = await this.flow.quickCheckin(value);
+    this.recentId.set(entry.id);
+    this.recentShown.set(true);
+    this.announce(`Logged ${value}, ${this.labels[value]}.`);
+    this.closeSoon();
+  }
+
+  /** "What's 1–7?": tapping a level in the scale sheet logs it the same way as the row. */
+  protected async explainScale(): Promise<void> {
+    const level = await this.flow.showScaleInfo({ canLog: true });
+    if (level !== null) {
+      await this.checkIn(level);
+    }
+  }
+
+  protected closeSoon(): void {
+    clearTimeout(this.closeTimer);
+    this.closeTimer = setTimeout(() => this.recentShown.set(false), 8000);
+  }
+
+  protected holdOpen(): void {
+    clearTimeout(this.closeTimer);
+  }
+
+  protected async undoRecent(): Promise<void> {
+    const entry = this.recent();
+    this.closeNow();
+    if (entry) {
+      await this.sleep.remove(entry);
+      this.feedback.haptic('warning');
+      this.announce('Check-in removed.');
+    }
+  }
+
+  protected addContext(): void {
+    const entry = this.recent();
+    this.closeNow();
+    if (entry) {
+      void this.flow.openSleepiness({ entry, focus: 'details' });
+    }
+  }
+
+  private closeNow(): void {
+    clearTimeout(this.closeTimer);
+    this.recentShown.set(false);
+  }
+
+  /** Clears first, so logging the same level twice is still read out twice. */
+  private announce(text: string): void {
+    this.announcement.set('');
+    setTimeout(() => this.announcement.set(text), 100);
+  }
+
+  protected openTrends(): void {
+    void this.router.navigateByUrl('/tabs/trends');
   }
 
   /** One tap to start experience-sampling reminders (permission is asked only now). */
@@ -164,7 +243,10 @@ export class TodayPage {
     const ok = await this.reminders.turnOn('checkins');
     if (ok) {
       const times = this.settings().checkins.times.map(t => fmtClock(t)).join(', ');
-      await this.feedback.toast(`Check-in reminders on: ${times}. Change them in Settings.`, { icon: 'notifications' });
+      await this.feedback.toast(`${times}. Change them in Settings.`, {
+        header: 'Check-in reminders on',
+        icon: 'notifications',
+      });
     }
   }
 }

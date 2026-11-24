@@ -1,8 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { IonButton, IonButtons, IonContent, IonHeader, IonItem, IonList, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { StanfordSleepinessData } from '../../data/stanford-sleepiness-data';
 
-/** A reference sheet explaining the Stanford Sleepiness Scale. */
+/** A reference sheet explaining the Stanford Sleepiness Scale. Opened from Today, a tapped level logs it. */
 @Component({
   selector: 'app-sss-info',
   templateUrl: './sss-info.component.html',
@@ -12,6 +12,8 @@ import { StanfordSleepinessData } from '../../data/stanford-sleepiness-data';
 export class SssInfoComponent {
   /** Set by Ionic's ModalController. */
   modal!: HTMLIonModalElement;
+  /** True when opened from the check-in row: tapping a level logs it (the caller shows the Undo toast). */
+  readonly canLog = input(false);
 
   protected readonly levels = StanfordSleepinessData.Levels;
   protected readonly labels = StanfordSleepinessData.ShortLabels;
@@ -19,5 +21,11 @@ export class SssInfoComponent {
 
   protected close(): void {
     void this.modal.dismiss();
+  }
+
+  protected pick(level: number): void {
+    if (this.canLog()) {
+      void this.modal.dismiss(level, 'pick');
+    }
   }
 }

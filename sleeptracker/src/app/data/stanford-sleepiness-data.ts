@@ -24,7 +24,7 @@ export class StanfordSleepinessData extends SleepData {
     'Wide awake', // 1
     'Focused', // 2
     'Relaxed', // 3
-    'Foggy', // 4
+    'A bit foggy', // 4
     'Slowed down', // 5
     'Fighting sleep', // 6
     'Dozing off']; // 7

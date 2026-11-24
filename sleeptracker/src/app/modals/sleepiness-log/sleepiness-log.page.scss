@@ -8,8 +8,9 @@
   margin-inline-end: 14px;
 }
 
+// Same teal tint as a selected tag chip, so "selected" looks the same everywhere in the sheet.
 .scale-item--on {
-  --background: var(--drift-surface-raised);
+  --background: rgba(79, 209, 197, 0.12);
 }
 
 .scale-item__label {

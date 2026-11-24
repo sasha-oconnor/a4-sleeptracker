@@ -37,6 +37,11 @@ export class SleepDialComponent {
   readonly wakeMax = input<number | null>(null);
   /** The form has an error: draw the arc in red and drop the goal text. */
   readonly invalid = input(false);
+  /**
+   * A running sleep timer's real time asleep. The center shows this instead of the arc's length, because
+   * the arc is padded to a few minutes at the start so it stays visible.
+   */
+  readonly elapsedMin = input<number | null>(null);
   /** Emits when the person finishes a drag or key press (for haptics). */
   readonly committed = output<Handle>();
 
@@ -51,7 +56,14 @@ export class SleepDialComponent {
     const span = wrapMinutes(this.wake() - this.bed());
     return span === 0 ? 0 : span;
   });
-  protected readonly durationText = computed(() => fmtDuration(this.durationMin()));
+  protected readonly durationText = computed(() => {
+    const elapsed = this.elapsedMin();
+    if (elapsed === null) {
+      return fmtDuration(this.durationMin());
+    }
+    // A timer counts whole minutes that have passed, so 4m 50s still reads 4m.
+    return elapsed < 1 ? '<1m' : fmtDuration(Math.floor(elapsed));
+  });
   protected readonly metGoal = computed(() => this.durationMin() >= this.goalMin());
   protected readonly goalText = computed(() => {
     const diff = this.durationMin() - this.goalMin();
@@ -90,8 +102,14 @@ export class SleepDialComponent {
   ];
 
   protected readonly fmtClock = fmtClock;
-  protected readonly ariaSummary = computed(() =>
-    `Sleep from ${fmtClock(this.bed())} to ${fmtClock(this.wake())}: ${fmtDurationLong(this.durationMin())}.`);
+  protected readonly ariaSummary = computed(() => {
+    const elapsed = this.elapsedMin();
+    if (elapsed !== null) {
+      const asleep = elapsed < 1 ? 'less than a minute' : fmtDurationLong(Math.floor(elapsed));
+      return `Asleep since ${fmtClock(this.bed())}: ${asleep}.`;
+    }
+    return `Sleep from ${fmtClock(this.bed())} to ${fmtClock(this.wake())}: ${fmtDurationLong(this.durationMin())}.`;
+  });
 
   protected valueText(which: Handle): string {
     return `${which === 'bed' ? 'Bedtime' : 'Wake-up'} ${fmtClock(which === 'bed' ? this.bed() : this.wake())}`;

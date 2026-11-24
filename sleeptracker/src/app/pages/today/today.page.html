@@ -23,14 +23,15 @@
         <ion-button expand="block" (click)="flow.openOvernight()">
           <ion-icon slot="start" name="moon" aria-hidden="true"></ion-icon>Log last night’s sleep
         </ion-button>
-        <ion-button expand="block" fill="clear" (click)="loadSample()">Explore with sample data</ion-button>
+        <ion-button expand="block" fill="clear" (click)="flow.loadSample()">Explore with sample data</ion-button>
       </section>
     }
 
     @case ('sleeping') {
       @if (sessionDial(); as sd) {
         <section class="panel hero hero--split" aria-labelledby="hero-title">
-          <app-sleep-dial class="hero__dial" [bed]="sd.bed" [wake]="sd.wake" [interactive]="false" [compact]="true" />
+          <app-sleep-dial class="hero__dial" [bed]="sd.bed" [wake]="sd.wake" [elapsedMin]="sd.elapsedMin"
+            [interactive]="false" [compact]="true" />
           <div class="hero__body">
             <h2 id="hero-title" class="hero__title">Sleep timer on</h2>
             <p class="hero__text">Asleep since {{ sd.since }}. Tap “I’m awake” when you get up and Drift fills in the times.</p>
@@ -55,7 +56,9 @@
           <ion-icon slot="start" name="moon" aria-hidden="true"></ion-icon>Start sleep timer
         </ion-button>
         @if (!lastNight()) {
-          <ion-button expand="block" fill="clear" (click)="flow.openOvernight()">Log last night instead</ion-button>
+          <ion-button expand="block" fill="clear" (click)="flow.openOvernight({ morning: logKey() })">
+            Forgot to log last night?
+          </ion-button>
         }
       </section>
     }
@@ -75,7 +78,11 @@
 
     @case ('summary') {
       @if (lastNightView(); as ln) {
-        <section class="panel hero hero--split" aria-labelledby="hero-title">
+        <!-- The whole card opens last night's log; "Edit" is just the visible cue. -->
+        <section class="panel hero hero--split hero--tappable" role="button" tabindex="0"
+          [attr.aria-label]="'Edit last night: ' + ln.range + ', ' + ln.goalText"
+          (click)="flow.openOvernight({ entry: ln.entry })" (keydown.enter)="flow.openOvernight({ entry: ln.entry })"
+          (keydown.space)="$event.preventDefault(); flow.openOvernight({ entry: ln.entry })">
           <app-sleep-dial class="hero__dial" [bed]="ln.bed" [wake]="ln.wake" [goalMin]="settings().goalMin"
             [interactive]="false" [compact]="true" />
           <div class="hero__body">
@@ -86,9 +93,7 @@
               <p class="hero__meta">Felt {{ ln.quality.toLowerCase() }} on waking</p>
             }
           </div>
-          <ion-button class="hero__edit" fill="clear" size="small" (click)="flow.openOvernight({ entry: ln.entry })">
-            Edit
-          </ion-button>
+          <span class="hero__edit" aria-hidden="true">Edit</span>
         </section>
       }
     }
@@ -96,26 +101,48 @@
 
   <section class="section" aria-labelledby="checkin-title">
     <div class="section-head">
-      <h2 id="checkin-title">How sleepy do you feel?</h2>
-      <ion-button fill="clear" size="small" (click)="flow.showScaleInfo()" aria-label="What do the numbers mean?">
-        <ion-icon slot="icon-only" name="help-circle-outline" aria-hidden="true"></ion-icon>
-      </ion-button>
+      <h2 id="checkin-title">How sleepy are you?</h2>
+      <ion-button fill="clear" size="small" (click)="explainScale()"
+        aria-label="What do the numbers 1 to 7 mean?">What’s 1–7?</ion-button>
     </div>
+    <p class="section-lead">Tap a number to log how you feel right now. Adding context is optional.</p>
     <div class="panel">
-      <app-sss-quick-row (picked)="flow.quickCheckin($event)" />
+      <app-sss-quick-row [selected]="confirmOpen() ? recent()?.value ?? null : null" (picked)="checkIn($event)" />
+      <!-- The confirmation folds open right where the tap happened, then folds away on its own. -->
+      <div class="confirm" [class.confirm--open]="confirmOpen()" [attr.inert]="confirmOpen() ? null : ''"
+        (pointerenter)="holdOpen()" (pointerleave)="closeSoon()" (focusin)="holdOpen()" (focusout)="closeSoon()">
+        <div class="confirm__clip">
+          @if (recent(); as r) {
+            <div class="confirm__body">
+              <p class="confirm__text">
+                <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+                <span>Logged <strong>{{ r.value }} · {{ labels[r.value] }}</strong> at
+                  <span class="tabular">{{ fmtClock(r.loggedAt) }}</span></span>
+              </p>
+              <div class="confirm__actions">
+                <button type="button" class="pill" (click)="addContext()">Add context</button>
+                <button type="button" class="pill" (click)="undoRecent()">Undo</button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
     </div>
+    <p class="sr-only" role="status">{{ announcement() }}</p>
     @if (todaysCheckins().length) {
-      <div class="checkins" role="list" aria-label="Today’s check-ins">
+      <p class="checkins__label" id="checkins-label">Logged today · tap one to edit</p>
+      <div class="checkins" role="group" aria-labelledby="checkins-label">
         @for (c of todaysCheckins(); track c.id) {
-          <button type="button" class="checkin" role="listitem" (click)="flow.openSleepiness({ entry: c })"
+          <button type="button" class="checkin" (click)="flow.openSleepiness({ entry: c })"
             [attr.aria-label]="'Edit the ' + fmtClock(c.loggedAt) + ' check-in: ' + c.value + ', ' + labels[c.value]">
             <span class="level-badge level-badge--small" [class]="'level-' + c.value" aria-hidden="true">{{ c.value }}</span>
-            <span class="tabular">{{ fmtClock(c.loggedAt) }}</span>
+            <span>{{ labels[c.value] }}</span>
+            <span class="checkin__time tabular">{{ fmtClock(c.loggedAt) }}</span>
           </button>
         }
       </div>
     } @else {
-      <p class="section-note">No check-ins yet today. Tap the number that matches how you feel.</p>
+      <p class="section-note">No check-ins yet today.</p>
     }
   </section>
 
@@ -127,7 +154,8 @@
           Trends<ion-icon slot="end" name="chevron-forward" aria-hidden="true"></ion-icon>
         </ion-button>
       </div>
-      <div class="panel">
+      <div class="panel panel--link" role="link" tabindex="0" [attr.aria-label]="'This week: ' + line + '. Open Trends.'"
+        (click)="openTrends()" (keydown.enter)="openTrends()">
         <app-duration-chart [series]="week()" [goalMin]="settings().goalMin" [compact]="true" />
         <p class="panel__foot">{{ line }}</p>
       </div>
@@ -156,7 +184,7 @@
         <ion-icon slot="start" name="notifications-outline" color="primary" aria-hidden="true"></ion-icon>
         <ion-label>
           <h3>Remind me to check in</h3>
-          <p>A few quick prompts a day make your log far more accurate than remembering later.</p>
+          <p class="tabular">A quick prompt at {{ checkinTimesText() }}.</p>
         </ion-label>
         <ion-note slot="end" color="primary">Turn on</ion-note>
       </ion-item>
